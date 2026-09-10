@@ -1,4 +1,5 @@
-// Mock database - we'll connect to PostgreSQL later
+import { sql } from '@vercel/postgres';
+
 export interface Project {
   id: string
   name: string
@@ -27,6 +28,7 @@ export interface TimelineItem {
   description: string
   dueDate: string
   status: 'pending' | 'in-progress' | 'completed'
+  imageUrl?: string
   createdAt: string
 }
 

@@ -8,10 +8,14 @@ interface ProjectDetailProps {
   projectId: string
 }
 
+interface TimelineItemWithImage extends TimelineItem {
+  imageUrl?: string
+}
+
 export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   const [project, setProject] = useState<Project | null>(null)
   const [ideas, setIdeas] = useState<Idea[]>([])
-  const [timeline, setTimeline] = useState<TimelineItem[]>([])
+  const [timeline, setTimeline] = useState<TimelineItemWithImage[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'mood-board' | 'timeline'>('mood-board')
   const [showIdeaForm, setShowIdeaForm] = useState(false)
@@ -28,7 +32,8 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
     title: '',
     description: '',
     dueDate: '',
-    status: 'pending' as 'pending' | 'in-progress' | 'completed'
+    status: 'pending' as 'pending' | 'in-progress' | 'completed',
+    imageUrl: ''
   })
 
   useEffect(() => {
@@ -85,7 +90,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
       })
       const newItem = await res.json()
       setTimeline([...timeline, newItem])
-      setTimelineForm({ title: '', description: '', dueDate: '', status: 'pending' })
+      setTimelineForm({ title: '', description: '', dueDate: '', status: 'pending', imageUrl: '' })
       setShowTimelineForm(false)
     } catch (error) {
       console.error('Failed to add timeline item:', error)
@@ -458,7 +463,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
 
                 <div style={{ marginBottom: '40px' }}>
                   <label style={{ display: 'block', fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px' }}>
-                    Description
+                    Description / What's in the clip?
                   </label>
                   <textarea
                     value={timelineForm.description}
@@ -475,7 +480,7 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
                       fontFamily: 'inherit',
                       resize: 'none'
                     }}
-                    placeholder="What needs to be done"
+                    placeholder="What should be in this clip? Shots, scenes, ideas..."
                   />
                 </div>
 
@@ -529,6 +534,28 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
                   </div>
                 </div>
 
+                <div style={{ marginBottom: '40px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px' }}>
+                    Reference Image URL (Reel preview, storyboard, etc)
+                  </label>
+                  <input
+                    type="url"
+                    value={timelineForm.imageUrl}
+                    onChange={(e) => setTimelineForm({ ...timelineForm, imageUrl: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '16px 0',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      borderBottom: '1px solid #333',
+                      color: '#fff',
+                      fontSize: '16px',
+                      fontFamily: 'inherit'
+                    }}
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
+
                 <div style={{ display: 'flex', gap: '20px' }}>
                   <button
                     type="submit"
@@ -579,33 +606,49 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
             {timeline.length > 0 && (
               <div style={{ display: 'grid', gap: '60px' }}>
                 {timeline.map((item, idx) => (
-                  <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 150px', gap: '50px', alignItems: 'start', borderBottom: '1px solid #222', paddingBottom: '50px' }}>
-                    <div>
-                      <div style={{ marginBottom: '20px' }}>
-                        <span style={{ fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px' }}>Milestone {String(idx + 1).padStart(2, '0')}</span>
+                  <div key={item.id}>
+                    <div style={{ marginBottom: '30px' }}>
+                      <span style={{ fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px' }}>Milestone {String(idx + 1).padStart(2, '0')}</span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '50px', alignItems: 'start', marginBottom: '30px' }}>
+                      <div>
+                        <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', lineHeight: '1.3' }}>
+                          {item.title}
+                        </h3>
+                        <p style={{ fontSize: '14px', color: '#999', marginBottom: '20px', lineHeight: '1.6' }}>
+                          {item.description}
+                        </p>
+                        <p style={{ fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                          Due {new Date(item.dueDate).toLocaleDateString('da-DK', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </p>
                       </div>
-                      <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', lineHeight: '1.3' }}>
-                        {item.title}
-                      </h3>
-                      <p style={{ fontSize: '14px', color: '#999', marginBottom: '20px', lineHeight: '1.6' }}>
-                        {item.description}
-                      </p>
-                      <p style={{ fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                        Due {new Date(item.dueDate).toLocaleDateString('da-DK', { year: 'numeric', month: 'short', day: 'numeric' })}
-                      </p>
+                      <div style={{
+                        textAlign: 'center',
+                        padding: '12px',
+                        border: '1px solid #333',
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        letterSpacing: '1px',
+                        color: item.status === 'completed' ? '#aaa' : item.status === 'in-progress' ? '#999' : '#666',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {item.status}
+                      </div>
                     </div>
-                    <div style={{
-                      textAlign: 'center',
-                      padding: '12px',
-                      border: '1px solid #333',
-                      fontSize: '11px',
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase',
-                      letterSpacing: '1px',
-                      color: item.status === 'completed' ? '#aaa' : item.status === 'in-progress' ? '#999' : '#666'
-                    }}>
-                      {item.status}
-                    </div>
+                    {item.imageUrl && (
+                      <div style={{ height: '300px', overflow: 'hidden', backgroundColor: '#111', marginBottom: '40px' }}>
+                        <img
+                          src={item.imageUrl}
+                          alt={item.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).parentElement!.style.display = 'none'
+                          }}
+                        />
+                      </div>
+                    )}
+                    <div style={{ height: '1px', backgroundColor: '#222', marginTop: '40px' }}></div>
                   </div>
                 ))}
               </div>
