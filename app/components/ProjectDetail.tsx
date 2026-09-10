@@ -12,6 +12,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
   const [showTimelineForm, setShowTimelineForm] = useState(false)
   const [ideaForm, setIdeaForm] = useState({ title: '', description: '', category: '', imageUrl: '' })
   const [timelineForm, setTimelineForm] = useState({ title: '', description: '', dueDate: '', status: 'pending', imageUrl: '' })
+  const [dragActive, setDragActive] = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -27,6 +28,34 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
     }
     load()
   }, [projectId])
+
+  const handleImageUpload = (file: File, formType: 'idea' | 'timeline') => {
+    const reader = new FileReader()
+    reader.onload = (e: any) => {
+      if (formType === 'idea') {
+        setIdeaForm({ ...ideaForm, imageUrl: e.target.result })
+      } else {
+        setTimelineForm({ ...timelineForm, imageUrl: e.target.result })
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleDrag = (e: any, formType: 'idea' | 'timeline', active: boolean) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(active ? formType : '')
+  }
+
+  const handleDrop = (e: any, formType: 'idea' | 'timeline') => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive('')
+    const files = e.dataTransfer.files
+    if (files && files[0]) {
+      handleImageUpload(files[0], formType)
+    }
+  }
 
   async function addIdea(e: any) {
     e.preventDefault()
@@ -91,8 +120,39 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
                 <div style={{ marginBottom: '20px' }}>
                   <input type="text" placeholder="Category" value={ideaForm.category} onChange={(e) => setIdeaForm({ ...ideaForm, category: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} />
                 </div>
-                <div style={{ marginBottom: '20px' }}>
-                  <input type="url" placeholder="Image URL" value={ideaForm.imageUrl} onChange={(e) => setIdeaForm({ ...ideaForm, imageUrl: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} />
+                <div 
+                  onDragEnter={(e) => handleDrag(e, 'idea', true)}
+                  onDragLeave={(e) => handleDrag(e, 'idea', false)}
+                  onDragOver={(e) => handleDrag(e, 'idea', true)}
+                  onDrop={(e) => handleDrop(e, 'idea')}
+                  style={{ 
+                    marginBottom: '20px', 
+                    padding: '20px', 
+                    border: dragActive === 'idea' ? '2px dashed #fff' : '2px dashed #333',
+                    backgroundColor: dragActive === 'idea' ? '#1a1a1a' : '#000',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {ideaForm.imageUrl ? (
+                    <div>
+                      <img src={ideaForm.imageUrl} alt="preview" style={{ maxWidth: '100%', maxHeight: '150px', marginBottom: '10px' }} />
+                      <p style={{ fontSize: '12px', color: '#666' }}>Drop to replace</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p style={{ color: '#999', marginBottom: '10px' }}>Drag & drop image here or click to select</p>
+                      <input 
+                        type="file" 
+                        accept="image/png,image/jpeg,image/gif,image/webp" 
+                        onChange={(e) => e.target.files && handleImageUpload(e.target.files[0], 'idea')}
+                        style={{ display: 'none' }}
+                        id="idea-image-input"
+                      />
+                      <label htmlFor="idea-image-input" style={{ cursor: 'pointer', color: '#666', fontSize: '12px' }}>PNG, JPG, GIF, WebP</label>
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button type="submit" style={{ padding: '10px 20px', backgroundColor: '#333', border: '1px solid #555', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>Save</button>
@@ -104,7 +164,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
               {ideas.map((idea: any) => (
                 <div key={idea.id} style={{ backgroundColor: '#111', border: '1px solid #333', padding: '20px' }}>
-                  {idea.imageUrl && <img src={idea.imageUrl} alt={idea.title} style={{ width: '100%', height: '150px', objectFit: 'cover', marginBottom: '15px' }} onError={(e) => (e.currentTarget.style.display = 'none')} />}
+                  {idea.imageUrl && <img src={idea.imageUrl} alt={idea.title} style={{ width: '100%', height: '150px', objectFit: 'cover', marginBottom: '15px' }} />}
                   <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px' }}>{idea.title}</h3>
                   <p style={{ color: '#999', fontSize: '14px', marginBottom: '10px' }}>{idea.description}</p>
                   <span style={{ fontSize: '12px', color: '#666' }}>{idea.category}</span>
@@ -151,8 +211,39 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
                     </select>
                   </div>
                 </div>
-                <div style={{ marginBottom: '20px' }}>
-                  <input type="url" placeholder="Reference Image URL" value={timelineForm.imageUrl} onChange={(e) => setTimelineForm({ ...timelineForm, imageUrl: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} />
+                <div 
+                  onDragEnter={(e) => handleDrag(e, 'timeline', true)}
+                  onDragLeave={(e) => handleDrag(e, 'timeline', false)}
+                  onDragOver={(e) => handleDrag(e, 'timeline', true)}
+                  onDrop={(e) => handleDrop(e, 'timeline')}
+                  style={{ 
+                    marginBottom: '20px', 
+                    padding: '20px', 
+                    border: dragActive === 'timeline' ? '2px dashed #fff' : '2px dashed #333',
+                    backgroundColor: dragActive === 'timeline' ? '#1a1a1a' : '#000',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {timelineForm.imageUrl ? (
+                    <div>
+                      <img src={timelineForm.imageUrl} alt="preview" style={{ maxWidth: '100%', maxHeight: '150px', marginBottom: '10px' }} />
+                      <p style={{ fontSize: '12px', color: '#666' }}>Drop to replace</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p style={{ color: '#999', marginBottom: '10px' }}>Drag & drop reference image or click to select</p>
+                      <input 
+                        type="file" 
+                        accept="image/png,image/jpeg,image/gif,image/webp" 
+                        onChange={(e) => e.target.files && handleImageUpload(e.target.files[0], 'timeline')}
+                        style={{ display: 'none' }}
+                        id="timeline-image-input"
+                      />
+                      <label htmlFor="timeline-image-input" style={{ cursor: 'pointer', color: '#666', fontSize: '12px' }}>PNG, JPG, GIF, WebP</label>
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button type="submit" style={{ padding: '10px 20px', backgroundColor: '#333', border: '1px solid #555', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>Save</button>
@@ -170,7 +261,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
                   </div>
                   <p style={{ color: '#999', fontSize: '14px', marginBottom: '10px' }}>{item.description}</p>
                   <p style={{ fontSize: '12px', color: '#666', marginBottom: '15px' }}>Due: {new Date(item.dueDate).toLocaleDateString()}</p>
-                  {item.imageUrl && <img src={item.imageUrl} alt={item.title} style={{ width: '100%', height: '200px', objectFit: 'cover' }} onError={(e) => (e.currentTarget.style.display = 'none')} />}
+                  {item.imageUrl && <img src={item.imageUrl} alt={item.title} style={{ width: '100%', height: '200px', objectFit: 'cover' }} />}
                 </div>
               ))}
             </div>
