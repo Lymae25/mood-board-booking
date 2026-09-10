@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSceneNotes, createSceneNote } from '@/lib/db'
+import { getSceneNotes, createSceneNote, initDB } from '@/lib/db-postgres'
 
 export async function GET(request: NextRequest) {
   try {
+    await initDB()
     const sceneId = request.nextUrl.searchParams.get('sceneId')
     if (!sceneId) return NextResponse.json({ error: 'sceneId required' }, { status: 400 })
     const notes = await getSceneNotes(sceneId)
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    await initDB()
     const data = await request.json()
     const { sceneId, projectId, content } = data
     if (!sceneId || !projectId || !content) return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
