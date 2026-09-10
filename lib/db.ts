@@ -1,5 +1,3 @@
-import { sql } from '@vercel/postgres';
-
 export interface Project {
   id: string
   name: string
@@ -32,7 +30,6 @@ export interface TimelineItem {
   createdAt: string
 }
 
-// Mock data for demo
 let projects: Project[] = [
   {
     id: '1',
@@ -51,10 +48,6 @@ let timeline: TimelineItem[] = []
 
 export async function getProjects() {
   return projects
-}
-
-export async function getProjectById(id: string) {
-  return projects.find(p => p.id === id)
 }
 
 export async function createProject(project: Omit<Project, 'id' | 'createdAt'>) {
