@@ -126,7 +126,7 @@ export default function Dashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '40px' }}>
           {projects.map((project: any) => (
             <Link key={project.id} href={`/project/${project.id}`} style={{ textDecoration: 'none' }}>
-              <div style={{ backgroundColor: 'transparent', border: '1px solid #333', padding: '0', cursor: 'pointer', transition: 'all 0.3s', position: 'relative', group: 'true' }}>
+              <div style={{ backgroundColor: 'transparent', border: '1px solid #333', padding: '0', cursor: 'pointer', transition: 'all 0.3s', position: 'relative' }}>
                 {project.logoUrl && (
                   <img src={project.logoUrl} alt={project.name} style={{ width: '100%', height: '160px', objectFit: 'cover' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
                 )}
