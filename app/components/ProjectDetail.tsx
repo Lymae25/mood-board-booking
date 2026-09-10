@@ -88,100 +88,135 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   }
 
   if (loading) {
-    return <div className="p-8 text-center">Loading...</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-gray-400 text-sm tracking-widest mb-4">LOADING</div>
+          <div className="w-12 h-12 border-2 border-gray-600 border-t-gray-300 rounded-full animate-spin mx-auto"></div>
+        </div>
+      </div>
+    )
   }
 
   if (!project) {
-    return <div className="p-8 text-center">Project not found</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500 text-sm tracking-widest uppercase">Project Not Found</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-      <div className="max-w-7xl mx-auto p-8">
-        <Link href="/" className="text-blue-400 hover:text-blue-300 mb-6 inline-block">
-          ← Back to Projects
+    <div className="min-h-screen bg-black">
+      <div className="max-w-7xl mx-auto px-8 py-16">
+        {/* Back Link */}
+        <Link href="/" className="text-gray-500 hover:text-gray-300 text-sm tracking-widest uppercase mb-12 inline-block transition">
+          ← BACK
         </Link>
 
-        <div className="bg-slate-700 p-8 rounded-lg mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">{project.name}</h1>
-          <p className="text-slate-400 mb-4">{project.description}</p>
-          <div className="flex gap-4 text-sm text-slate-400">
-            <span>Client: {project.clientName}</span>
-            <span>Status: {project.status}</span>
+        {/* Project Header */}
+        <div className="bg-gradient-to-b from-gray-900 to-black border border-gray-800 p-12 mb-12">
+          <h1 className="text-4xl font-black text-gray-300 mb-4 tracking-wider">
+            {project.name}
+          </h1>
+          <p className="text-gray-500 mb-8 leading-relaxed text-sm">
+            {project.description}
+          </p>
+          <div className="flex gap-8 text-xs text-gray-600 tracking-widest uppercase">
+            {project.clientName && (
+              <div>
+                <span className="text-gray-700">Client</span>
+                <p className="text-gray-400 mt-1">{project.clientName}</p>
+              </div>
+            )}
+            <div>
+              <span className="text-gray-700">Status</span>
+              <p className="text-gray-400 mt-1 font-semibold">{project.status}</p>
+            </div>
           </div>
         </div>
 
-        <div className="flex gap-4 mb-8 border-b border-slate-600">
+        {/* Tabs */}
+        <div className="flex gap-8 mb-12 border-b border-gray-800">
           <button
             onClick={() => setActiveTab('mood-board')}
-            className={`px-6 py-3 font-semibold transition ${
+            className={`px-2 py-4 text-sm tracking-widest font-semibold transition relative ${
               activeTab === 'mood-board'
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-slate-400 hover:text-white'
+                ? 'text-gray-300'
+                : 'text-gray-600 hover:text-gray-400'
             }`}
           >
-            Mood Board
+            MOOD BOARD
+            {activeTab === 'mood-board' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-400"></div>
+            )}
           </button>
           <button
             onClick={() => setActiveTab('timeline')}
-            className={`px-6 py-3 font-semibold transition ${
+            className={`px-2 py-4 text-sm tracking-widest font-semibold transition relative ${
               activeTab === 'timeline'
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-slate-400 hover:text-white'
+                ? 'text-gray-300'
+                : 'text-gray-600 hover:text-gray-400'
             }`}
           >
-            Timeline
+            TIMELINE
+            {activeTab === 'timeline' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-400"></div>
+            )}
           </button>
         </div>
 
+        {/* Mood Board Tab */}
         {activeTab === 'mood-board' && (
           <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">Ideas</h2>
+            <div className="flex justify-between items-center mb-12">
+              <h2 className="text-2xl font-black text-gray-300 tracking-wider">IDEAS</h2>
               <button
                 onClick={() => setShowIdeaForm(!showIdeaForm)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
+                className="px-6 py-2 bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-700 hover:border-gray-500 text-xs tracking-widest font-semibold transition"
               >
-                {showIdeaForm ? 'Cancel' : 'Add Idea'}
+                {showIdeaForm ? 'CANCEL' : 'ADD IDEA'}
               </button>
             </div>
 
             {showIdeaForm && (
-              <div className="bg-slate-700 p-6 rounded-lg mb-6">
+              <div className="animate-fade-in bg-gradient-to-b from-gray-900 to-black border border-gray-800 p-8 mb-12">
                 <form onSubmit={handleAddIdea} className="space-y-4">
                   <input
                     type="text"
                     placeholder="Idea Title"
                     value={ideaFormData.title}
                     onChange={(e) => setIdeaFormData({ ...ideaFormData, title: e.target.value })}
-                    className="w-full px-4 py-2 bg-slate-600 text-white placeholder-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 bg-black border border-gray-700 text-gray-300 placeholder-gray-600 focus:border-gray-400 transition text-sm"
                     required
                   />
                   <textarea
                     placeholder="Description"
                     value={ideaFormData.description}
                     onChange={(e) => setIdeaFormData({ ...ideaFormData, description: e.target.value })}
-                    className="w-full px-4 py-2 bg-slate-600 text-white placeholder-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 bg-black border border-gray-700 text-gray-300 placeholder-gray-600 focus:border-gray-400 transition text-sm h-20 resize-none"
                   />
                   <input
                     type="text"
-                    placeholder="Category (e.g., Color, Typography, Layout)"
+                    placeholder="Category"
                     value={ideaFormData.category}
                     onChange={(e) => setIdeaFormData({ ...ideaFormData, category: e.target.value })}
-                    className="w-full px-4 py-2 bg-slate-600 text-white placeholder-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 bg-black border border-gray-700 text-gray-300 placeholder-gray-600 focus:border-gray-400 transition text-sm"
                   />
                   <input
                     type="url"
                     placeholder="Image URL (optional)"
                     value={ideaFormData.imageUrl}
                     onChange={(e) => setIdeaFormData({ ...ideaFormData, imageUrl: e.target.value })}
-                    className="w-full px-4 py-2 bg-slate-600 text-white placeholder-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 bg-black border border-gray-700 text-gray-300 placeholder-gray-600 focus:border-gray-400 transition text-sm"
                   />
                   <button
                     type="submit"
-                    className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition"
+                    className="w-full px-4 py-2 bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-700 hover:border-gray-500 text-xs tracking-widest font-semibold transition"
                   >
-                    Add Idea
+                    ADD
                   </button>
                 </form>
               </div>
@@ -189,17 +224,23 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {ideas.map((idea) => (
-                <div key={idea.id} className="bg-slate-700 p-6 rounded-lg">
+                <div key={idea.id} className="animate-fade-in bg-gradient-to-b from-gray-900 to-black border border-gray-800 hover:border-gray-600 p-6 transition group">
                   {idea.imageUrl && (
-                    <img
-                      src={idea.imageUrl}
-                      alt={idea.title}
-                      className="w-full h-40 object-cover rounded-lg mb-4"
-                    />
+                    <div className="mb-4 overflow-hidden bg-black">
+                      <img
+                        src={idea.imageUrl}
+                        alt={idea.title}
+                        className="w-full h-40 object-cover group-hover:scale-105 transition duration-500"
+                      />
+                    </div>
                   )}
-                  <h3 className="text-lg font-bold text-white mb-2">{idea.title}</h3>
-                  <p className="text-slate-400 mb-3">{idea.description}</p>
-                  <span className="text-xs bg-purple-600 text-white px-3 py-1 rounded-full">
+                  <h3 className="text-lg font-black text-gray-300 mb-2 tracking-wide">
+                    {idea.title}
+                  </h3>
+                  <p className="text-gray-500 mb-4 text-sm leading-relaxed">
+                    {idea.description}
+                  </p>
+                  <span className="text-xs bg-black border border-gray-700 text-gray-400 px-3 py-1 inline-block tracking-widest uppercase font-semibold">
                     {idea.category}
                   </span>
                 </div>
@@ -207,52 +248,53 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
             </div>
 
             {ideas.length === 0 && !showIdeaForm && (
-              <div className="text-center py-12">
-                <p className="text-slate-400">No ideas yet. Add one to get started!</p>
+              <div className="text-center py-16">
+                <p className="text-gray-600 text-sm tracking-widest uppercase">NO IDEAS YET</p>
               </div>
             )}
           </div>
         )}
 
+        {/* Timeline Tab */}
         {activeTab === 'timeline' && (
           <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">Timeline</h2>
+            <div className="flex justify-between items-center mb-12">
+              <h2 className="text-2xl font-black text-gray-300 tracking-wider">TIMELINE</h2>
               <button
                 onClick={() => setShowTimelineForm(!showTimelineForm)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
+                className="px-6 py-2 bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-700 hover:border-gray-500 text-xs tracking-widest font-semibold transition"
               >
-                {showTimelineForm ? 'Cancel' : 'Add Milestone'}
+                {showTimelineForm ? 'CANCEL' : 'ADD MILESTONE'}
               </button>
             </div>
 
             {showTimelineForm && (
-              <div className="bg-slate-700 p-6 rounded-lg mb-6">
+              <div className="animate-fade-in bg-gradient-to-b from-gray-900 to-black border border-gray-800 p-8 mb-12">
                 <form onSubmit={handleAddTimelineItem} className="space-y-4">
                   <input
                     type="text"
                     placeholder="Milestone Title"
                     value={timelineFormData.title}
                     onChange={(e) => setTimelineFormData({ ...timelineFormData, title: e.target.value })}
-                    className="w-full px-4 py-2 bg-slate-600 text-white placeholder-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 bg-black border border-gray-700 text-gray-300 placeholder-gray-600 focus:border-gray-400 transition text-sm"
                     required
                   />
                   <textarea
                     placeholder="Description"
                     value={timelineFormData.description}
                     onChange={(e) => setTimelineFormData({ ...timelineFormData, description: e.target.value })}
-                    className="w-full px-4 py-2 bg-slate-600 text-white placeholder-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 bg-black border border-gray-700 text-gray-300 placeholder-gray-600 focus:border-gray-400 transition text-sm h-20 resize-none"
                   />
                   <input
                     type="date"
                     value={timelineFormData.dueDate}
                     onChange={(e) => setTimelineFormData({ ...timelineFormData, dueDate: e.target.value })}
-                    className="w-full px-4 py-2 bg-slate-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 bg-black border border-gray-700 text-gray-300 focus:border-gray-400 transition text-sm"
                   />
                   <select
                     value={timelineFormData.status}
                     onChange={(e) => setTimelineFormData({ ...timelineFormData, status: e.target.value })}
-                    className="w-full px-4 py-2 bg-slate-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 bg-black border border-gray-700 text-gray-300 focus:border-gray-400 transition text-sm"
                   >
                     <option value="pending">Pending</option>
                     <option value="in-progress">In Progress</option>
@@ -260,9 +302,9 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
                   </select>
                   <button
                     type="submit"
-                    className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition"
+                    className="w-full px-4 py-2 bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-700 hover:border-gray-500 text-xs tracking-widest font-semibold transition"
                   >
-                    Add Milestone
+                    ADD
                   </button>
                 </form>
               </div>
@@ -270,28 +312,34 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
 
             <div className="space-y-4">
               {timeline.map((item) => (
-                <div key={item.id} className="bg-slate-700 p-6 rounded-lg">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-bold text-white mb-2">{item.title}</h3>
-                      <p className="text-slate-400 mb-3">{item.description}</p>
-                      <p className="text-sm text-slate-500">Due: {new Date(item.dueDate).toLocaleDateString()}</p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      item.status === 'completed' ? 'bg-green-600' :
-                      item.status === 'in-progress' ? 'bg-yellow-600' :
-                      'bg-slate-600'
-                    } text-white`}>
+                <div key={item.id} className="animate-fade-in bg-gradient-to-b from-gray-900 to-black border border-gray-800 hover:border-gray-600 p-6 transition">
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="text-lg font-black text-gray-300 tracking-wide flex-1">
+                      {item.title}
+                    </h3>
+                    <span className={`text-xs px-3 py-1 border font-semibold tracking-widest uppercase whitespace-nowrap ml-4 ${
+                      item.status === 'completed' 
+                        ? 'border-green-700 text-green-400 bg-green-950/30'
+                        : item.status === 'in-progress' 
+                        ? 'border-yellow-700 text-yellow-400 bg-yellow-950/30'
+                        : 'border-gray-700 text-gray-400 bg-black'
+                    }`}>
                       {item.status}
                     </span>
                   </div>
+                  <p className="text-gray-500 mb-4 text-sm leading-relaxed">
+                    {item.description}
+                  </p>
+                  <p className="text-gray-600 text-xs tracking-widest uppercase">
+                    DUE: {new Date(item.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  </p>
                 </div>
               ))}
             </div>
 
             {timeline.length === 0 && !showTimelineForm && (
-              <div className="text-center py-12">
-                <p className="text-slate-400">No milestones yet. Add one to get started!</p>
+              <div className="text-center py-16">
+                <p className="text-gray-600 text-sm tracking-widest uppercase">NO MILESTONES YET</p>
               </div>
             )}
           </div>
