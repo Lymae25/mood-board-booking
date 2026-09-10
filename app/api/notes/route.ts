@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSceneNotes, createSceneNote, initDB } from '@/lib/db-postgres'
+import { initDB, getSceneNotes, createSceneNote } from '@/lib/db-postgres'
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,9 +18,7 @@ export async function POST(request: NextRequest) {
   try {
     await initDB()
     const data = await request.json()
-    const { sceneId, projectId, content } = data
-    if (!sceneId || !projectId || !content) return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-    const note = await createSceneNote(sceneId, projectId, content)
+    const note = await createSceneNote(data.sceneId, data.projectId, data.content)
     return NextResponse.json(note, { status: 201 })
   } catch (error) {
     console.error('POST /api/notes error:', error)
