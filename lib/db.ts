@@ -29,6 +29,14 @@ export interface Scene {
   createdAt: string
 }
 
+export interface SceneNote {
+  id: string
+  sceneId: string
+  projectId: string
+  content: string
+  createdAt: string
+}
+
 export interface TimelineItem {
   id: string
   projectId: string
@@ -55,6 +63,7 @@ let projects: Project[] = [
 
 let ideas: Idea[] = []
 let scenes: Scene[] = []
+let sceneNotes: SceneNote[] = []
 let timeline: TimelineItem[] = []
 
 export async function getProjects(): Promise<Project[]> {
@@ -85,6 +94,16 @@ export async function createScene(projectId: string, scene: Omit<Scene, 'id' | '
   const newScene: Scene = { ...scene, id: Date.now().toString(), projectId, createdAt: new Date().toISOString() }
   scenes.push(newScene)
   return newScene
+}
+
+export async function getSceneNotes(sceneId: string): Promise<SceneNote[]> {
+  return sceneNotes.filter(n => n.sceneId === sceneId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+}
+
+export async function createSceneNote(sceneId: string, projectId: string, content: string): Promise<SceneNote> {
+  const newNote: SceneNote = { id: Date.now().toString(), sceneId, projectId, content, createdAt: new Date().toISOString() }
+  sceneNotes.push(newNote)
+  return newNote
 }
 
 export async function getTimeline(projectId: string): Promise<TimelineItem[]> {
