@@ -13,20 +13,22 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   const [ideas, setIdeas] = useState<Idea[]>([])
   const [timeline, setTimeline] = useState<TimelineItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('mood-board')
+  const [activeTab, setActiveTab] = useState<'mood-board' | 'timeline'>('mood-board')
   const [showIdeaForm, setShowIdeaForm] = useState(false)
   const [showTimelineForm, setShowTimelineForm] = useState(false)
-  const [ideaFormData, setIdeaFormData] = useState({
+  
+  const [ideaForm, setIdeaForm] = useState({
     title: '',
     description: '',
     category: '',
     imageUrl: ''
   })
-  const [timelineFormData, setTimelineFormData] = useState({
+  
+  const [timelineForm, setTimelineForm] = useState({
     title: '',
     description: '',
     dueDate: '',
-    status: 'pending'
+    status: 'pending' as 'pending' | 'in-progress' | 'completed'
   })
 
   useEffect(() => {
@@ -35,17 +37,16 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
 
   async function fetchData() {
     try {
-      const projectRes = await fetch(`/api/projects?id=${projectId}`)
-      const projectData = await projectRes.json()
-      setProject(projectData[0])
+      const projectRes = await fetch('/api/projects')
+      const projects = await projectRes.json()
+      const found = projects.find((p: Project) => p.id === projectId)
+      setProject(found)
 
       const ideasRes = await fetch(`/api/ideas?projectId=${projectId}`)
-      const ideasData = await ideasRes.json()
-      setIdeas(ideasData)
+      setIdeas(await ideasRes.json())
 
       const timelineRes = await fetch(`/api/timeline?projectId=${projectId}`)
-      const timelineData = await timelineRes.json()
-      setTimeline(timelineData)
+      setTimeline(await timelineRes.json())
     } catch (error) {
       console.error('Failed to fetch data:', error)
     } finally {
@@ -55,32 +56,36 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
 
   async function handleAddIdea(e: React.FormEvent) {
     e.preventDefault()
+    if (!ideaForm.title) return
+
     try {
       const res = await fetch('/api/ideas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId, ...ideaFormData })
+        body: JSON.stringify({ projectId, ...ideaForm })
       })
       const newIdea = await res.json()
       setIdeas([...ideas, newIdea])
-      setIdeaFormData({ title: '', description: '', category: '', imageUrl: '' })
+      setIdeaForm({ title: '', description: '', category: '', imageUrl: '' })
       setShowIdeaForm(false)
     } catch (error) {
       console.error('Failed to add idea:', error)
     }
   }
 
-  async function handleAddTimelineItem(e: React.FormEvent) {
+  async function handleAddTimeline(e: React.FormEvent) {
     e.preventDefault()
+    if (!timelineForm.title || !timelineForm.dueDate) return
+
     try {
       const res = await fetch('/api/timeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId, ...timelineFormData })
+        body: JSON.stringify({ projectId, ...timelineForm })
       })
       const newItem = await res.json()
       setTimeline([...timeline, newItem])
-      setTimelineFormData({ title: '', description: '', dueDate: '', status: 'pending' })
+      setTimelineForm({ title: '', description: '', dueDate: '', status: 'pending' })
       setShowTimelineForm(false)
     } catch (error) {
       console.error('Failed to add timeline item:', error)
@@ -89,167 +94,260 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-gray-400 text-sm tracking-widest mb-4">LOADING</div>
-          <div className="w-12 h-12 border-2 border-gray-600 border-t-gray-300 rounded-full animate-spin mx-auto"></div>
-        </div>
+      <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p>Loading...</p>
       </div>
     )
   }
 
   if (!project) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-500 text-sm tracking-widest uppercase">Project Not Found</p>
-        </div>
+      <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p>Project not found</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-black">
-      <div className="max-w-7xl mx-auto px-8 py-16">
-        {/* Back Link */}
-        <Link href="/" className="text-gray-500 hover:text-gray-300 text-sm tracking-widest uppercase mb-12 inline-block transition">
-          ← BACK
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '40px 20px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        {/* Back Button */}
+        <Link href="/" style={{ color: '#999', textDecoration: 'none', fontSize: '12px', marginBottom: '40px', display: 'block' }}>
+          ← BACK TO PROJECTS
         </Link>
 
         {/* Project Header */}
-        <div className="bg-gradient-to-b from-gray-900 to-black border border-gray-800 p-12 mb-12">
-          <h1 className="text-4xl font-black text-gray-300 mb-4 tracking-wider">
+        <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '50px', marginBottom: '50px' }}>
+          <h1 style={{ fontSize: '42px', fontWeight: 'bold', marginBottom: '20px', letterSpacing: '1px' }}>
             {project.name}
           </h1>
-          <p className="text-gray-500 mb-8 leading-relaxed text-sm">
+          <p style={{ fontSize: '15px', color: '#aaa', marginBottom: '30px', lineHeight: '1.6', maxWidth: '800px' }}>
             {project.description}
           </p>
-          <div className="flex gap-8 text-xs text-gray-600 tracking-widest uppercase">
-            {project.clientName && (
-              <div>
-                <span className="text-gray-700">Client</span>
-                <p className="text-gray-400 mt-1">{project.clientName}</p>
-              </div>
-            )}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '30px', fontSize: '12px' }}>
             <div>
-              <span className="text-gray-700">Status</span>
-              <p className="text-gray-400 mt-1 font-semibold">{project.status}</p>
+              <p style={{ color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Client</p>
+              <p style={{ color: '#fff', fontWeight: 'bold' }}>{project.clientName || 'N/A'}</p>
+            </div>
+            <div>
+              <p style={{ color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Status</p>
+              <p style={{ color: '#fff', fontWeight: 'bold', textTransform: 'capitalize' }}>{project.status}</p>
+            </div>
+            <div>
+              <p style={{ color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Period</p>
+              <p style={{ color: '#fff', fontWeight: 'bold' }}>
+                {project.startDate ? new Date(project.startDate).toLocaleDateString() : 'TBD'} - {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'TBD'}
+              </p>
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-8 mb-12 border-b border-gray-800">
+        <div style={{ display: 'flex', gap: '30px', borderBottom: '2px solid #222', marginBottom: '50px' }}>
           <button
             onClick={() => setActiveTab('mood-board')}
-            className={`px-2 py-4 text-sm tracking-widest font-semibold transition relative ${
-              activeTab === 'mood-board'
-                ? 'text-gray-300'
-                : 'text-gray-600 hover:text-gray-400'
-            }`}
+            style={{
+              backgroundColor: 'transparent',
+              border: 'none',
+              color: activeTab === 'mood-board' ? '#fff' : '#666',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              padding: '15px 0',
+              borderBottom: activeTab === 'mood-board' ? '3px solid #fff' : 'none',
+              marginBottom: '-2px'
+            }}
           >
-            MOOD BOARD
-            {activeTab === 'mood-board' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-400"></div>
-            )}
+            Mood Board
           </button>
           <button
             onClick={() => setActiveTab('timeline')}
-            className={`px-2 py-4 text-sm tracking-widest font-semibold transition relative ${
-              activeTab === 'timeline'
-                ? 'text-gray-300'
-                : 'text-gray-600 hover:text-gray-400'
-            }`}
+            style={{
+              backgroundColor: 'transparent',
+              border: 'none',
+              color: activeTab === 'timeline' ? '#fff' : '#666',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              padding: '15px 0',
+              borderBottom: activeTab === 'timeline' ? '3px solid #fff' : 'none',
+              marginBottom: '-2px'
+            }}
           >
-            TIMELINE
-            {activeTab === 'timeline' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-400"></div>
-            )}
+            Timeline
           </button>
         </div>
 
         {/* Mood Board Tab */}
         {activeTab === 'mood-board' && (
           <div>
-            <div className="flex justify-between items-center mb-12">
-              <h2 className="text-2xl font-black text-gray-300 tracking-wider">IDEAS</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+              <h2 style={{ fontSize: '28px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Ideas
+              </h2>
               <button
                 onClick={() => setShowIdeaForm(!showIdeaForm)}
-                className="px-6 py-2 bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-700 hover:border-gray-500 text-xs tracking-widest font-semibold transition"
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#111',
+                  color: '#fff',
+                  border: '1px solid #444',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px'
+                }}
               >
                 {showIdeaForm ? 'CANCEL' : 'ADD IDEA'}
               </button>
             </div>
 
+            {/* Add Idea Form */}
             {showIdeaForm && (
-              <div className="animate-fade-in bg-gradient-to-b from-gray-900 to-black border border-gray-800 p-8 mb-12">
-                <form onSubmit={handleAddIdea} className="space-y-4">
-                  <input
-                    type="text"
-                    placeholder="Idea Title"
-                    value={ideaFormData.title}
-                    onChange={(e) => setIdeaFormData({ ...ideaFormData, title: e.target.value })}
-                    className="w-full px-4 py-2 bg-black border border-gray-700 text-gray-300 placeholder-gray-600 focus:border-gray-400 transition text-sm"
-                    required
-                  />
-                  <textarea
-                    placeholder="Description"
-                    value={ideaFormData.description}
-                    onChange={(e) => setIdeaFormData({ ...ideaFormData, description: e.target.value })}
-                    className="w-full px-4 py-2 bg-black border border-gray-700 text-gray-300 placeholder-gray-600 focus:border-gray-400 transition text-sm h-20 resize-none"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Category"
-                    value={ideaFormData.category}
-                    onChange={(e) => setIdeaFormData({ ...ideaFormData, category: e.target.value })}
-                    className="w-full px-4 py-2 bg-black border border-gray-700 text-gray-300 placeholder-gray-600 focus:border-gray-400 transition text-sm"
-                  />
-                  <input
-                    type="url"
-                    placeholder="Image URL (optional)"
-                    value={ideaFormData.imageUrl}
-                    onChange={(e) => setIdeaFormData({ ...ideaFormData, imageUrl: e.target.value })}
-                    className="w-full px-4 py-2 bg-black border border-gray-700 text-gray-300 placeholder-gray-600 focus:border-gray-400 transition text-sm"
-                  />
+              <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '40px', marginBottom: '40px' }}>
+                <form onSubmit={handleAddIdea} style={{ display: 'grid', gap: '20px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+                      Title
+                    </label>
+                    <input
+                      type="text"
+                      value={ideaForm.title}
+                      onChange={(e) => setIdeaForm({ ...ideaForm, title: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        backgroundColor: '#000',
+                        border: '1px solid #333',
+                        color: '#fff',
+                        fontSize: '14px'
+                      }}
+                      placeholder="Idea title"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+                      Description
+                    </label>
+                    <textarea
+                      value={ideaForm.description}
+                      onChange={(e) => setIdeaForm({ ...ideaForm, description: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        backgroundColor: '#000',
+                        border: '1px solid #333',
+                        color: '#fff',
+                        fontSize: '14px',
+                        minHeight: '80px',
+                        fontFamily: 'inherit',
+                        resize: 'vertical'
+                      }}
+                      placeholder="Describe the idea"
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+                      Category
+                    </label>
+                    <input
+                      type="text"
+                      value={ideaForm.category}
+                      onChange={(e) => setIdeaForm({ ...ideaForm, category: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        backgroundColor: '#000',
+                        border: '1px solid #333',
+                        color: '#fff',
+                        fontSize: '14px'
+                      }}
+                      placeholder="e.g., Color, Typography, Layout"
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+                      Image URL
+                    </label>
+                    <input
+                      type="url"
+                      value={ideaForm.imageUrl}
+                      onChange={(e) => setIdeaForm({ ...ideaForm, imageUrl: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        backgroundColor: '#000',
+                        border: '1px solid #333',
+                        color: '#fff',
+                        fontSize: '14px'
+                      }}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  </div>
+
                   <button
                     type="submit"
-                    className="w-full px-4 py-2 bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-700 hover:border-gray-500 text-xs tracking-widest font-semibold transition"
+                    style={{
+                      padding: '12px',
+                      backgroundColor: '#222',
+                      color: '#fff',
+                      border: '1px solid #444',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px'
+                    }}
                   >
-                    ADD
+                    Create Idea
                   </button>
                 </form>
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Ideas Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px', marginBottom: '60px' }}>
               {ideas.map((idea) => (
-                <div key={idea.id} className="animate-fade-in bg-gradient-to-b from-gray-900 to-black border border-gray-800 hover:border-gray-600 p-6 transition group">
+                <div key={idea.id} style={{ backgroundColor: '#111', border: '1px solid #333', overflow: 'hidden' }}>
                   {idea.imageUrl && (
-                    <div className="mb-4 overflow-hidden bg-black">
+                    <div style={{ height: '200px', overflow: 'hidden', backgroundColor: '#000' }}>
                       <img
                         src={idea.imageUrl}
                         alt={idea.title}
-                        className="w-full h-40 object-cover group-hover:scale-105 transition duration-500"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display = 'none'
+                        }}
                       />
                     </div>
                   )}
-                  <h3 className="text-lg font-black text-gray-300 mb-2 tracking-wide">
-                    {idea.title}
-                  </h3>
-                  <p className="text-gray-500 mb-4 text-sm leading-relaxed">
-                    {idea.description}
-                  </p>
-                  <span className="text-xs bg-black border border-gray-700 text-gray-400 px-3 py-1 inline-block tracking-widest uppercase font-semibold">
-                    {idea.category}
-                  </span>
+                  <div style={{ padding: '20px' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '10px' }}>
+                      {idea.title}
+                    </h3>
+                    <p style={{ fontSize: '13px', color: '#999', marginBottom: '15px', lineHeight: '1.5' }}>
+                      {idea.description}
+                    </p>
+                    <span style={{ display: 'inline-block', fontSize: '10px', color: '#999', border: '1px solid #444', padding: '6px 10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      {idea.category}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
 
             {ideas.length === 0 && !showIdeaForm && (
-              <div className="text-center py-16">
-                <p className="text-gray-600 text-sm tracking-widest uppercase">NO IDEAS YET</p>
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: '#666' }}>
+                <p style={{ fontSize: '14px' }}>No ideas yet. Add one to build your mood board!</p>
               </div>
             )}
           </div>
@@ -258,88 +356,174 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
         {/* Timeline Tab */}
         {activeTab === 'timeline' && (
           <div>
-            <div className="flex justify-between items-center mb-12">
-              <h2 className="text-2xl font-black text-gray-300 tracking-wider">TIMELINE</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+              <h2 style={{ fontSize: '28px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Timeline
+              </h2>
               <button
                 onClick={() => setShowTimelineForm(!showTimelineForm)}
-                className="px-6 py-2 bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-700 hover:border-gray-500 text-xs tracking-widest font-semibold transition"
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#111',
+                  color: '#fff',
+                  border: '1px solid #444',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px'
+                }}
               >
                 {showTimelineForm ? 'CANCEL' : 'ADD MILESTONE'}
               </button>
             </div>
 
+            {/* Add Timeline Form */}
             {showTimelineForm && (
-              <div className="animate-fade-in bg-gradient-to-b from-gray-900 to-black border border-gray-800 p-8 mb-12">
-                <form onSubmit={handleAddTimelineItem} className="space-y-4">
-                  <input
-                    type="text"
-                    placeholder="Milestone Title"
-                    value={timelineFormData.title}
-                    onChange={(e) => setTimelineFormData({ ...timelineFormData, title: e.target.value })}
-                    className="w-full px-4 py-2 bg-black border border-gray-700 text-gray-300 placeholder-gray-600 focus:border-gray-400 transition text-sm"
-                    required
-                  />
-                  <textarea
-                    placeholder="Description"
-                    value={timelineFormData.description}
-                    onChange={(e) => setTimelineFormData({ ...timelineFormData, description: e.target.value })}
-                    className="w-full px-4 py-2 bg-black border border-gray-700 text-gray-300 placeholder-gray-600 focus:border-gray-400 transition text-sm h-20 resize-none"
-                  />
-                  <input
-                    type="date"
-                    value={timelineFormData.dueDate}
-                    onChange={(e) => setTimelineFormData({ ...timelineFormData, dueDate: e.target.value })}
-                    className="w-full px-4 py-2 bg-black border border-gray-700 text-gray-300 focus:border-gray-400 transition text-sm"
-                  />
-                  <select
-                    value={timelineFormData.status}
-                    onChange={(e) => setTimelineFormData({ ...timelineFormData, status: e.target.value })}
-                    className="w-full px-4 py-2 bg-black border border-gray-700 text-gray-300 focus:border-gray-400 transition text-sm"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                  </select>
+              <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '40px', marginBottom: '40px' }}>
+                <form onSubmit={handleAddTimeline} style={{ display: 'grid', gap: '20px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+                      Milestone Title
+                    </label>
+                    <input
+                      type="text"
+                      value={timelineForm.title}
+                      onChange={(e) => setTimelineForm({ ...timelineForm, title: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        backgroundColor: '#000',
+                        border: '1px solid #333',
+                        color: '#fff',
+                        fontSize: '14px'
+                      }}
+                      placeholder="Milestone title"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+                      Description
+                    </label>
+                    <textarea
+                      value={timelineForm.description}
+                      onChange={(e) => setTimelineForm({ ...timelineForm, description: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        backgroundColor: '#000',
+                        border: '1px solid #333',
+                        color: '#fff',
+                        fontSize: '14px',
+                        minHeight: '80px',
+                        fontFamily: 'inherit',
+                        resize: 'vertical'
+                      }}
+                      placeholder="What needs to be done"
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+                        Due Date
+                      </label>
+                      <input
+                        type="date"
+                        value={timelineForm.dueDate}
+                        onChange={(e) => setTimelineForm({ ...timelineForm, dueDate: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          backgroundColor: '#000',
+                          border: '1px solid #333',
+                          color: '#fff',
+                          fontSize: '14px'
+                        }}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+                        Status
+                      </label>
+                      <select
+                        value={timelineForm.status}
+                        onChange={(e) => setTimelineForm({ ...timelineForm, status: e.target.value as any })}
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          backgroundColor: '#000',
+                          border: '1px solid #333',
+                          color: '#fff',
+                          fontSize: '14px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <button
                     type="submit"
-                    className="w-full px-4 py-2 bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-700 hover:border-gray-500 text-xs tracking-widest font-semibold transition"
+                    style={{
+                      padding: '12px',
+                      backgroundColor: '#222',
+                      color: '#fff',
+                      border: '1px solid #444',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px'
+                    }}
                   >
-                    ADD
+                    Create Milestone
                   </button>
                 </form>
               </div>
             )}
 
-            <div className="space-y-4">
-              {timeline.map((item) => (
-                <div key={item.id} className="animate-fade-in bg-gradient-to-b from-gray-900 to-black border border-gray-800 hover:border-gray-600 p-6 transition">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-lg font-black text-gray-300 tracking-wide flex-1">
+            {/* Timeline Items */}
+            <div style={{ display: 'grid', gap: '20px', marginBottom: '60px' }}>
+              {timeline.map((item, index) => (
+                <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '20px', alignItems: 'start' }}>
+                  <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '30px' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px' }}>
                       {item.title}
                     </h3>
-                    <span className={`text-xs px-3 py-1 border font-semibold tracking-widest uppercase whitespace-nowrap ml-4 ${
-                      item.status === 'completed' 
-                        ? 'border-green-700 text-green-400 bg-green-950/30'
-                        : item.status === 'in-progress' 
-                        ? 'border-yellow-700 text-yellow-400 bg-yellow-950/30'
-                        : 'border-gray-700 text-gray-400 bg-black'
-                    }`}>
-                      {item.status}
-                    </span>
+                    <p style={{ fontSize: '13px', color: '#999', marginBottom: '15px', lineHeight: '1.5' }}>
+                      {item.description}
+                    </p>
+                    <p style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Due: {new Date(item.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </p>
                   </div>
-                  <p className="text-gray-500 mb-4 text-sm leading-relaxed">
-                    {item.description}
-                  </p>
-                  <p className="text-gray-600 text-xs tracking-widest uppercase">
-                    DUE: {new Date(item.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                  </p>
+                  <div style={{
+                    padding: '12px 16px',
+                    border: '1px solid #444',
+                    textAlign: 'center',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    color: item.status === 'completed' ? '#90EE90' : item.status === 'in-progress' ? '#FFD700' : '#999'
+                  }}>
+                    {item.status}
+                  </div>
                 </div>
               ))}
             </div>
 
             {timeline.length === 0 && !showTimelineForm && (
-              <div className="text-center py-16">
-                <p className="text-gray-600 text-sm tracking-widest uppercase">NO MILESTONES YET</p>
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: '#666' }}>
+                <p style={{ fontSize: '14px' }}>No milestones yet. Add one to track progress!</p>
               </div>
             )}
           </div>
