@@ -109,57 +109,61 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '40px 20px' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '60px 40px' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         {/* Back Button */}
-        <Link href="/" style={{ color: '#999', textDecoration: 'none', fontSize: '12px', marginBottom: '40px', display: 'block' }}>
-          ← BACK TO PROJECTS
+        <Link href="/" style={{ color: '#666', textDecoration: 'none', fontSize: '13px', marginBottom: '80px', display: 'block', letterSpacing: '1px' }}>
+          ← BACK
         </Link>
 
         {/* Project Header */}
-        <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '50px', marginBottom: '50px' }}>
-          <h1 style={{ fontSize: '42px', fontWeight: 'bold', marginBottom: '20px', letterSpacing: '1px' }}>
+        <div style={{ marginBottom: '80px' }}>
+          <h1 style={{ fontSize: '56px', fontWeight: 'bold', marginBottom: '30px', letterSpacing: '2px', lineHeight: '1.1' }}>
             {project.name}
           </h1>
-          <p style={{ fontSize: '15px', color: '#aaa', marginBottom: '30px', lineHeight: '1.6', maxWidth: '800px' }}>
+          <p style={{ fontSize: '16px', color: '#aaa', marginBottom: '50px', lineHeight: '1.8', maxWidth: '700px' }}>
             {project.description}
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '30px', fontSize: '12px' }}>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '50px', fontSize: '13px', marginBottom: '60px' }}>
             <div>
-              <p style={{ color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Client</p>
-              <p style={{ color: '#fff', fontWeight: 'bold' }}>{project.clientName || 'N/A'}</p>
+              <p style={{ color: '#555', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '2px', fontSize: '11px' }}>Client</p>
+              <p style={{ color: '#fff', fontSize: '14px' }}>{project.clientName || 'TBA'}</p>
             </div>
             <div>
-              <p style={{ color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Status</p>
-              <p style={{ color: '#fff', fontWeight: 'bold', textTransform: 'capitalize' }}>{project.status}</p>
+              <p style={{ color: '#555', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '2px', fontSize: '11px' }}>Status</p>
+              <p style={{ color: '#fff', fontSize: '14px', textTransform: 'capitalize' }}>{project.status}</p>
             </div>
             <div>
-              <p style={{ color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Period</p>
-              <p style={{ color: '#fff', fontWeight: 'bold' }}>
-                {project.startDate ? new Date(project.startDate).toLocaleDateString() : 'TBD'} - {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'TBD'}
+              <p style={{ color: '#555', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '2px', fontSize: '11px' }}>Period</p>
+              <p style={{ color: '#fff', fontSize: '14px' }}>
+                {project.startDate ? new Date(project.startDate).toLocaleDateString('da-DK') : 'TBA'} – {project.endDate ? new Date(project.endDate).toLocaleDateString('da-DK') : 'TBA'}
               </p>
             </div>
           </div>
+
+          <div style={{ height: '1px', backgroundColor: '#222', marginBottom: '80px' }}></div>
         </div>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: '30px', borderBottom: '2px solid #222', marginBottom: '50px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', marginBottom: '80px', borderBottom: '1px solid #222', paddingBottom: '60px' }}>
           <button
             onClick={() => setActiveTab('mood-board')}
             style={{
               backgroundColor: 'transparent',
               border: 'none',
-              color: activeTab === 'mood-board' ? '#fff' : '#666',
+              color: activeTab === 'mood-board' ? '#fff' : '#555',
               cursor: 'pointer',
-              fontSize: '14px',
+              fontSize: '16px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
-              padding: '15px 0',
-              borderBottom: activeTab === 'mood-board' ? '3px solid #fff' : 'none',
-              marginBottom: '-2px'
+              letterSpacing: '2px',
+              padding: '0',
+              textAlign: 'left',
+              transition: 'color 0.3s'
             }}
           >
+            <span style={{ display: 'block', color: '#555', fontSize: '13px', marginBottom: '8px', letterSpacing: '2px' }}>01</span>
             Mood Board
           </button>
           <button
@@ -167,188 +171,230 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
             style={{
               backgroundColor: 'transparent',
               border: 'none',
-              color: activeTab === 'timeline' ? '#fff' : '#666',
+              color: activeTab === 'timeline' ? '#fff' : '#555',
               cursor: 'pointer',
-              fontSize: '14px',
+              fontSize: '16px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
-              letterSpacing: '1px',
-              padding: '15px 0',
-              borderBottom: activeTab === 'timeline' ? '3px solid #fff' : 'none',
-              marginBottom: '-2px'
+              letterSpacing: '2px',
+              padding: '0',
+              textAlign: 'left',
+              transition: 'color 0.3s'
             }}
           >
+            <span style={{ display: 'block', color: '#555', fontSize: '13px', marginBottom: '8px', letterSpacing: '2px' }}>02</span>
             Timeline
           </button>
         </div>
 
         {/* Mood Board Tab */}
         {activeTab === 'mood-board' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-              <h2 style={{ fontSize: '28px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                Ideas
-              </h2>
+          <div style={{ marginBottom: '120px' }}>
+            {!showIdeaForm && (
               <button
-                onClick={() => setShowIdeaForm(!showIdeaForm)}
+                onClick={() => setShowIdeaForm(true)}
                 style={{
-                  padding: '12px 24px',
-                  backgroundColor: '#111',
+                  padding: '20px 40px',
+                  backgroundColor: 'transparent',
                   color: '#fff',
-                  border: '1px solid #444',
+                  border: '1px solid #333',
                   cursor: 'pointer',
-                  fontSize: '12px',
+                  fontSize: '14px',
                   fontWeight: 'bold',
                   textTransform: 'uppercase',
-                  letterSpacing: '1px'
+                  letterSpacing: '2px',
+                  marginBottom: '60px',
+                  transition: 'all 0.3s'
+                }}
+                onMouseOver={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = '#666'
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#111'
+                }}
+                onMouseOut={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = '#333'
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'
                 }}
               >
-                {showIdeaForm ? 'CANCEL' : 'ADD IDEA'}
+                + Add Idea
               </button>
-            </div>
+            )}
 
-            {/* Add Idea Form */}
             {showIdeaForm && (
-              <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '40px', marginBottom: '40px' }}>
-                <form onSubmit={handleAddIdea} style={{ display: 'grid', gap: '20px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-                      Title
-                    </label>
-                    <input
-                      type="text"
-                      value={ideaForm.title}
-                      onChange={(e) => setIdeaForm({ ...ideaForm, title: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        backgroundColor: '#000',
-                        border: '1px solid #333',
-                        color: '#fff',
-                        fontSize: '14px'
-                      }}
-                      placeholder="Idea title"
-                      required
-                    />
-                  </div>
+              <form onSubmit={handleAddIdea} style={{ marginBottom: '80px' }}>
+                <div style={{ marginBottom: '40px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px' }}>
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={ideaForm.title}
+                    onChange={(e) => setIdeaForm({ ...ideaForm, title: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '16px 0',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      borderBottom: '1px solid #333',
+                      color: '#fff',
+                      fontSize: '16px',
+                      fontFamily: 'inherit'
+                    }}
+                    placeholder="Idea title"
+                    required
+                  />
+                </div>
 
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-                      Description
-                    </label>
-                    <textarea
-                      value={ideaForm.description}
-                      onChange={(e) => setIdeaForm({ ...ideaForm, description: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        backgroundColor: '#000',
-                        border: '1px solid #333',
-                        color: '#fff',
-                        fontSize: '14px',
-                        minHeight: '80px',
-                        fontFamily: 'inherit',
-                        resize: 'vertical'
-                      }}
-                      placeholder="Describe the idea"
-                    />
-                  </div>
+                <div style={{ marginBottom: '40px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px' }}>
+                    Description
+                  </label>
+                  <textarea
+                    value={ideaForm.description}
+                    onChange={(e) => setIdeaForm({ ...ideaForm, description: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '16px 0',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      borderBottom: '1px solid #333',
+                      color: '#fff',
+                      fontSize: '16px',
+                      minHeight: '60px',
+                      fontFamily: 'inherit',
+                      resize: 'none'
+                    }}
+                    placeholder="Describe the idea"
+                  />
+                </div>
 
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-                      Category
-                    </label>
-                    <input
-                      type="text"
-                      value={ideaForm.category}
-                      onChange={(e) => setIdeaForm({ ...ideaForm, category: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        backgroundColor: '#000',
-                        border: '1px solid #333',
-                        color: '#fff',
-                        fontSize: '14px'
-                      }}
-                      placeholder="e.g., Color, Typography, Layout"
-                    />
-                  </div>
+                <div style={{ marginBottom: '40px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px' }}>
+                    Category
+                  </label>
+                  <input
+                    type="text"
+                    value={ideaForm.category}
+                    onChange={(e) => setIdeaForm({ ...ideaForm, category: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '16px 0',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      borderBottom: '1px solid #333',
+                      color: '#fff',
+                      fontSize: '16px',
+                      fontFamily: 'inherit'
+                    }}
+                    placeholder="Color, Typography, Layout, etc"
+                  />
+                </div>
 
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-                      Image URL
-                    </label>
-                    <input
-                      type="url"
-                      value={ideaForm.imageUrl}
-                      onChange={(e) => setIdeaForm({ ...ideaForm, imageUrl: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        backgroundColor: '#000',
-                        border: '1px solid #333',
-                        color: '#fff',
-                        fontSize: '14px'
-                      }}
-                      placeholder="https://example.com/image.jpg"
-                    />
-                  </div>
+                <div style={{ marginBottom: '40px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px' }}>
+                    Image URL
+                  </label>
+                  <input
+                    type="url"
+                    value={ideaForm.imageUrl}
+                    onChange={(e) => setIdeaForm({ ...ideaForm, imageUrl: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '16px 0',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      borderBottom: '1px solid #333',
+                      color: '#fff',
+                      fontSize: '16px',
+                      fontFamily: 'inherit'
+                    }}
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
 
+                <div style={{ display: 'flex', gap: '20px' }}>
                   <button
                     type="submit"
                     style={{
-                      padding: '12px',
-                      backgroundColor: '#222',
+                      padding: '16px 40px',
+                      backgroundColor: 'transparent',
                       color: '#fff',
-                      border: '1px solid #444',
+                      border: '1px solid #555',
                       cursor: 'pointer',
-                      fontSize: '12px',
+                      fontSize: '13px',
                       fontWeight: 'bold',
                       textTransform: 'uppercase',
-                      letterSpacing: '1px'
+                      letterSpacing: '2px',
+                      transition: 'all 0.3s'
+                    }}
+                    onMouseOver={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = '#fff'
+                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#111'
+                    }}
+                    onMouseOut={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = '#555'
+                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'
                     }}
                   >
-                    Create Idea
+                    Save Idea
                   </button>
-                </form>
+                  <button
+                    type="button"
+                    onClick={() => setShowIdeaForm(false)}
+                    style={{
+                      padding: '16px 40px',
+                      backgroundColor: 'transparent',
+                      color: '#666',
+                      border: '1px solid #333',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase',
+                      letterSpacing: '2px'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {ideas.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '50px' }}>
+                {ideas.map((idea, idx) => (
+                  <div key={idea.id}>
+                    <div style={{ marginBottom: '20px' }}>
+                      <span style={{ fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px' }}>Idea {String(idx + 1).padStart(2, '0')}</span>
+                    </div>
+                    {idea.imageUrl && (
+                      <div style={{ height: '280px', overflow: 'hidden', marginBottom: '30px', backgroundColor: '#111' }}>
+                        <img
+                          src={idea.imageUrl}
+                          alt={idea.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).parentElement!.style.display = 'none'
+                          }}
+                        />
+                      </div>
+                    )}
+                    <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', lineHeight: '1.3' }}>
+                      {idea.title}
+                    </h3>
+                    <p style={{ fontSize: '14px', color: '#999', marginBottom: '20px', lineHeight: '1.6' }}>
+                      {idea.description}
+                    </p>
+                    <p style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                      {idea.category}
+                    </p>
+                  </div>
+                ))}
               </div>
             )}
 
-            {/* Ideas Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px', marginBottom: '60px' }}>
-              {ideas.map((idea) => (
-                <div key={idea.id} style={{ backgroundColor: '#111', border: '1px solid #333', overflow: 'hidden' }}>
-                  {idea.imageUrl && (
-                    <div style={{ height: '200px', overflow: 'hidden', backgroundColor: '#000' }}>
-                      <img
-                        src={idea.imageUrl}
-                        alt={idea.title}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display = 'none'
-                        }}
-                      />
-                    </div>
-                  )}
-                  <div style={{ padding: '20px' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '10px' }}>
-                      {idea.title}
-                    </h3>
-                    <p style={{ fontSize: '13px', color: '#999', marginBottom: '15px', lineHeight: '1.5' }}>
-                      {idea.description}
-                    </p>
-                    <span style={{ display: 'inline-block', fontSize: '10px', color: '#999', border: '1px solid #444', padding: '6px 10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      {idea.category}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
             {ideas.length === 0 && !showIdeaForm && (
-              <div style={{ textAlign: 'center', padding: '60px 20px', color: '#666' }}>
-                <p style={{ fontSize: '14px' }}>No ideas yet. Add one to build your mood board!</p>
-              </div>
+              <p style={{ fontSize: '14px', color: '#666', textAlign: 'center', padding: '80px 20px' }}>
+                No ideas yet. Click "Add Idea" to start building your mood board.
+              </p>
             )}
           </div>
         )}
@@ -356,175 +402,219 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
         {/* Timeline Tab */}
         {activeTab === 'timeline' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-              <h2 style={{ fontSize: '28px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                Timeline
-              </h2>
+            {!showTimelineForm && (
               <button
-                onClick={() => setShowTimelineForm(!showTimelineForm)}
+                onClick={() => setShowTimelineForm(true)}
                 style={{
-                  padding: '12px 24px',
-                  backgroundColor: '#111',
+                  padding: '20px 40px',
+                  backgroundColor: 'transparent',
                   color: '#fff',
-                  border: '1px solid #444',
+                  border: '1px solid #333',
                   cursor: 'pointer',
-                  fontSize: '12px',
+                  fontSize: '14px',
                   fontWeight: 'bold',
                   textTransform: 'uppercase',
-                  letterSpacing: '1px'
+                  letterSpacing: '2px',
+                  marginBottom: '60px',
+                  transition: 'all 0.3s'
+                }}
+                onMouseOver={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = '#666'
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#111'
+                }}
+                onMouseOut={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = '#333'
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'
                 }}
               >
-                {showTimelineForm ? 'CANCEL' : 'ADD MILESTONE'}
+                + Add Milestone
               </button>
-            </div>
+            )}
 
-            {/* Add Timeline Form */}
             {showTimelineForm && (
-              <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '40px', marginBottom: '40px' }}>
-                <form onSubmit={handleAddTimeline} style={{ display: 'grid', gap: '20px' }}>
+              <form onSubmit={handleAddTimeline} style={{ marginBottom: '80px' }}>
+                <div style={{ marginBottom: '40px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px' }}>
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={timelineForm.title}
+                    onChange={(e) => setTimelineForm({ ...timelineForm, title: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '16px 0',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      borderBottom: '1px solid #333',
+                      color: '#fff',
+                      fontSize: '16px',
+                      fontFamily: 'inherit'
+                    }}
+                    placeholder="Milestone title"
+                    required
+                  />
+                </div>
+
+                <div style={{ marginBottom: '40px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px' }}>
+                    Description
+                  </label>
+                  <textarea
+                    value={timelineForm.description}
+                    onChange={(e) => setTimelineForm({ ...timelineForm, description: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '16px 0',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      borderBottom: '1px solid #333',
+                      color: '#fff',
+                      fontSize: '16px',
+                      minHeight: '60px',
+                      fontFamily: 'inherit',
+                      resize: 'none'
+                    }}
+                    placeholder="What needs to be done"
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', marginBottom: '40px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-                      Milestone Title
+                    <label style={{ display: 'block', fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px' }}>
+                      Due Date
                     </label>
                     <input
-                      type="text"
-                      value={timelineForm.title}
-                      onChange={(e) => setTimelineForm({ ...timelineForm, title: e.target.value })}
+                      type="date"
+                      value={timelineForm.dueDate}
+                      onChange={(e) => setTimelineForm({ ...timelineForm, dueDate: e.target.value })}
                       style={{
                         width: '100%',
-                        padding: '12px',
-                        backgroundColor: '#000',
-                        border: '1px solid #333',
+                        padding: '16px 0',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        borderBottom: '1px solid #333',
                         color: '#fff',
-                        fontSize: '14px'
+                        fontSize: '16px',
+                        fontFamily: 'inherit',
+                        cursor: 'pointer'
                       }}
-                      placeholder="Milestone title"
                       required
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-                      Description
+                    <label style={{ display: 'block', fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px' }}>
+                      Status
                     </label>
-                    <textarea
-                      value={timelineForm.description}
-                      onChange={(e) => setTimelineForm({ ...timelineForm, description: e.target.value })}
+                    <select
+                      value={timelineForm.status}
+                      onChange={(e) => setTimelineForm({ ...timelineForm, status: e.target.value as any })}
                       style={{
                         width: '100%',
-                        padding: '12px',
-                        backgroundColor: '#000',
-                        border: '1px solid #333',
+                        padding: '16px 0',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        borderBottom: '1px solid #333',
                         color: '#fff',
-                        fontSize: '14px',
-                        minHeight: '80px',
-                        fontFamily: 'inherit',
-                        resize: 'vertical'
+                        fontSize: '16px',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit'
                       }}
-                      placeholder="What needs to be done"
-                    />
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="in-progress">In Progress</option>
+                      <option value="completed">Completed</option>
+                    </select>
                   </div>
+                </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-                        Due Date
-                      </label>
-                      <input
-                        type="date"
-                        value={timelineForm.dueDate}
-                        onChange={(e) => setTimelineForm({ ...timelineForm, dueDate: e.target.value })}
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          backgroundColor: '#000',
-                          border: '1px solid #333',
-                          color: '#fff',
-                          fontSize: '14px'
-                        }}
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-                        Status
-                      </label>
-                      <select
-                        value={timelineForm.status}
-                        onChange={(e) => setTimelineForm({ ...timelineForm, status: e.target.value as any })}
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          backgroundColor: '#000',
-                          border: '1px solid #333',
-                          color: '#fff',
-                          fontSize: '14px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="in-progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                      </select>
-                    </div>
-                  </div>
-
+                <div style={{ display: 'flex', gap: '20px' }}>
                   <button
                     type="submit"
                     style={{
-                      padding: '12px',
-                      backgroundColor: '#222',
+                      padding: '16px 40px',
+                      backgroundColor: 'transparent',
                       color: '#fff',
-                      border: '1px solid #444',
+                      border: '1px solid #555',
                       cursor: 'pointer',
-                      fontSize: '12px',
+                      fontSize: '13px',
                       fontWeight: 'bold',
                       textTransform: 'uppercase',
-                      letterSpacing: '1px'
+                      letterSpacing: '2px',
+                      transition: 'all 0.3s'
+                    }}
+                    onMouseOver={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = '#fff'
+                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#111'
+                    }}
+                    onMouseOut={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = '#555'
+                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'
                     }}
                   >
-                    Create Milestone
+                    Save Milestone
                   </button>
-                </form>
+                  <button
+                    type="button"
+                    onClick={() => setShowTimelineForm(false)}
+                    style={{
+                      padding: '16px 40px',
+                      backgroundColor: 'transparent',
+                      color: '#666',
+                      border: '1px solid #333',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase',
+                      letterSpacing: '2px'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {timeline.length > 0 && (
+              <div style={{ display: 'grid', gap: '60px' }}>
+                {timeline.map((item, idx) => (
+                  <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr 150px', gap: '50px', alignItems: 'start', borderBottom: '1px solid #222', paddingBottom: '50px' }}>
+                    <div>
+                      <div style={{ marginBottom: '20px' }}>
+                        <span style={{ fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '2px' }}>Milestone {String(idx + 1).padStart(2, '0')}</span>
+                      </div>
+                      <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', lineHeight: '1.3' }}>
+                        {item.title}
+                      </h3>
+                      <p style={{ fontSize: '14px', color: '#999', marginBottom: '20px', lineHeight: '1.6' }}>
+                        {item.description}
+                      </p>
+                      <p style={{ fontSize: '13px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        Due {new Date(item.dueDate).toLocaleDateString('da-DK', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </p>
+                    </div>
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '12px',
+                      border: '1px solid #333',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px',
+                      color: item.status === 'completed' ? '#aaa' : item.status === 'in-progress' ? '#999' : '#666'
+                    }}>
+                      {item.status}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
-            {/* Timeline Items */}
-            <div style={{ display: 'grid', gap: '20px', marginBottom: '60px' }}>
-              {timeline.map((item, index) => (
-                <div key={item.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '20px', alignItems: 'start' }}>
-                  <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '30px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px' }}>
-                      {item.title}
-                    </h3>
-                    <p style={{ fontSize: '13px', color: '#999', marginBottom: '15px', lineHeight: '1.5' }}>
-                      {item.description}
-                    </p>
-                    <p style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Due: {new Date(item.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                    </p>
-                  </div>
-                  <div style={{
-                    padding: '12px 16px',
-                    border: '1px solid #444',
-                    textAlign: 'center',
-                    fontSize: '11px',
-                    fontWeight: 'bold',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    color: item.status === 'completed' ? '#90EE90' : item.status === 'in-progress' ? '#FFD700' : '#999'
-                  }}>
-                    {item.status}
-                  </div>
-                </div>
-              ))}
-            </div>
-
             {timeline.length === 0 && !showTimelineForm && (
-              <div style={{ textAlign: 'center', padding: '60px 20px', color: '#666' }}>
-                <p style={{ fontSize: '14px' }}>No milestones yet. Add one to track progress!</p>
-              </div>
+              <p style={{ fontSize: '14px', color: '#666', textAlign: 'center', padding: '80px 20px' }}>
+                No milestones yet. Click "Add Milestone" to build your timeline.
+              </p>
             )}
           </div>
         )}
