@@ -9,6 +9,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
   const [timeline, setTimeline] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('scenes')
+  const [selectedScene, setSelectedScene] = useState<any>(null)
   const [showIdeaForm, setShowIdeaForm] = useState(false)
   const [showSceneForm, setShowSceneForm] = useState(false)
   const [showTimelineForm, setShowTimelineForm] = useState(false)
@@ -65,7 +66,6 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
   }
 
   async function saveScene() {
-    console.log('saveScene called')
     if (!sceneForm.title) { alert('Scene title required'); return }
     try {
       const nextSceneNumber = Math.max(0, ...scenes.map(s => s.sceneNumber)) + 1
@@ -75,7 +75,6 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
         body: JSON.stringify({ projectId, sceneNumber: nextSceneNumber, ...sceneForm }) 
       })
       const newScene = await res.json()
-      console.log('Scene saved:', newScene)
       setScenes([...scenes, newScene].sort((a, b) => a.sceneNumber - b.sceneNumber))
       setSceneForm({ title: '', description: '', imageUrl: '' })
       setShowSceneForm(false)
@@ -130,7 +129,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
         </div>
       ) : (
         <div>
-          <p style={{ color: '#999', marginBottom: '10px' }}>Drag & drop image here or click to select</p>
+          <p style={{ color: '#999', marginBottom: '10px' }}>Drag & drop image or click</p>
           <input 
             type="file" 
             accept="image/png,image/jpeg,image/gif,image/webp" 
@@ -146,7 +145,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '40px' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         <Link href="/" style={{ color: '#999', textDecoration: 'none', marginBottom: '40px', display: 'block' }}>← Back</Link>
         
         <h1 style={{ fontSize: '48px', fontWeight: 'bold', marginBottom: '20px' }}>{project.name}</h1>
@@ -188,23 +187,52 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
               </div>
             )}
 
-            <div style={{ display: 'grid', gap: '20px' }}>
-              {scenes.map((scene: any) => (
-                <div key={scene.id} style={{ backgroundColor: '#111', border: '1px solid #333', padding: '20px', display: 'grid', gridTemplateColumns: '150px 1fr', gap: '20px' }}>
-                  <div>
-                    {scene.imageUrl ? (
-                      <img src={scene.imageUrl} alt={`Scene ${scene.sceneNumber}`} style={{ width: '150px', height: '150px', objectFit: 'cover' }} />
-                    ) : (
-                      <div style={{ width: '150px', height: '150px', backgroundColor: '#000', border: '1px dashed #333', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', fontSize: '12px' }}>No image</div>
+            {/* Swimlane Flowchart */}
+            <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '40px', marginBottom: '40px' }}>
+              <div style={{ display: 'flex', gap: '20px', alignItems: 'center', overflowX: 'auto', paddingBottom: '20px' }}>
+                {scenes.map((scene, idx) => (
+                  <div key={scene.id} style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <button
+                      onClick={() => setSelectedScene(scene)}
+                      style={{
+                        padding: '20px 30px',
+                        backgroundColor: selectedScene?.id === scene.id ? '#333' : '#000',
+                        border: selectedScene?.id === scene.id ? '2px solid #fff' : '1px solid #555',
+                        color: '#fff',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        minWidth: '180px',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <div style={{ fontSize: '11px', color: '#999', marginBottom: '8px' }}>SCENE {scene.sceneNumber}</div>
+                      <div style={{ fontSize: '15px' }}>{scene.title}</div>
+                    </button>
+                    {idx < scenes.length - 1 && (
+                      <div style={{ fontSize: '28px', color: '#555', marginBottom: '10px', minWidth: '30px' }}>→</div>
                     )}
                   </div>
-                  <div>
-                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '5px' }}>Scene {scene.sceneNumber}: {scene.title}</h3>
-                    <p style={{ color: '#999', fontSize: '14px', lineHeight: '1.6' }}>{scene.description}</p>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
+
+            {/* Scene Details */}
+            {selectedScene && (
+              <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '40px' }}>
+                <h2 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '20px' }}>Scene {selectedScene.sceneNumber}: {selectedScene.title}</h2>
+                
+                {selectedScene.imageUrl && (
+                  <img src={selectedScene.imageUrl} alt={selectedScene.title} style={{ width: '100%', maxHeight: '400px', objectFit: 'cover', marginBottom: '30px' }} />
+                )}
+
+                <div style={{ backgroundColor: '#000', padding: '25px', border: '1px solid #333' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px', color: '#fff' }}>What Happens</h3>
+                  <p style={{ color: '#ccc', fontSize: '15px', lineHeight: '1.8' }}>{selectedScene.description}</p>
+                </div>
+              </div>
+            )}
+
             {scenes.length === 0 && !showSceneForm && <p style={{ textAlign: 'center', color: '#666', paddingTop: '60px' }}>No scenes yet. Add your first scene!</p>}
           </div>
         )}
