@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { initDB, getProjects, createProject as dbCreateProject, deleteProject } from '@/lib/db-postgres'
+import { initDB, getProjects, createProject as dbCreateProject } from '@/lib/db-postgres'
 
 export async function GET(request: NextRequest) {
   try {

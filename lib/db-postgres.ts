@@ -14,7 +14,7 @@ export function getDb() {
 export async function initDB() {
   try {
     const sql = getDb()
-    await sql`CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT, clientName TEXT, status TEXT, startDate TEXT, endDate TEXT, createdAt TEXT)`
+    await sql`CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT, clientName TEXT, logoUrl TEXT, status TEXT, startDate TEXT, endDate TEXT, createdAt TEXT)`
     await sql`CREATE TABLE IF NOT EXISTS scenes (id TEXT PRIMARY KEY, projectId TEXT NOT NULL, sceneNumber INTEGER, title TEXT NOT NULL, description TEXT, imageUrl TEXT, createdAt TEXT)`
     await sql`CREATE TABLE IF NOT EXISTS sceneNotes (id TEXT PRIMARY KEY, sceneId TEXT NOT NULL, projectId TEXT NOT NULL, content TEXT NOT NULL, createdAt TEXT)`
     await sql`CREATE TABLE IF NOT EXISTS ideas (id TEXT PRIMARY KEY, projectId TEXT NOT NULL, title TEXT NOT NULL, description TEXT, imageUrl TEXT, category TEXT, createdAt TEXT)`
@@ -29,7 +29,7 @@ export async function getProjects() {
 export async function createProject(data: any) {
   const sql = getDb()
   const id = Date.now().toString()
-  await sql`INSERT INTO projects (id, name, description, clientName, status, startDate, endDate, createdAt) VALUES (${id}, ${data.name}, ${data.description || ''}, ${data.clientName || ''}, ${data.status}, ${data.startDate || ''}, ${data.endDate || ''}, ${new Date().toISOString()})`
+  await sql`INSERT INTO projects (id, name, description, clientName, logoUrl, status, startDate, endDate, createdAt) VALUES (${id}, ${data.name}, ${data.description || ''}, ${data.clientName || ''}, ${data.logoUrl || ''}, ${data.status}, ${data.startDate || ''}, ${data.endDate || ''}, ${new Date().toISOString()})`
   return { id, ...data, createdAt: new Date().toISOString() }
 }
 
