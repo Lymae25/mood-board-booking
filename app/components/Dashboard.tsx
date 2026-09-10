@@ -38,10 +38,7 @@ export default function Dashboard() {
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          status: 'active'
-        })
+        body: JSON.stringify({ ...formData, status: 'active' })
       })
       const newProject = await res.json()
       setProjects([...projects, newProject])
@@ -53,96 +50,115 @@ export default function Dashboard() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-gray-400 text-sm tracking-widest mb-4">LOADING</div>
-          <div className="w-12 h-12 border-2 border-gray-600 border-t-gray-300 rounded-full animate-spin mx-auto"></div>
-        </div>
-      </div>
-    )
+    return <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>
   }
 
   return (
-    <div className="min-h-screen bg-black">
-      <div className="max-w-7xl mx-auto px-8 py-16">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-20">
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '40px 20px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
           <div>
-            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 mb-2" style={{
-              letterSpacing: '3px',
-              fontFamily: 'Inter, sans-serif'
-            }}>
-              MOOD BOARD
-            </h1>
-            <p className="text-gray-500 text-sm tracking-widest">PROJECT BOOKING OVERVIEW</p>
+            <h1 style={{ fontSize: '48px', fontWeight: 'bold', marginBottom: '10px' }}>MOOD BOARD</h1>
+            <p style={{ fontSize: '14px', color: '#999' }}>Project Booking Overview</p>
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="px-8 py-3 bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-700 hover:border-gray-500 text-sm tracking-widest font-semibold transition"
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#111',
+              color: '#fff',
+              border: '1px solid #444',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold'
+            }}
           >
             {showForm ? 'CANCEL' : 'NEW PROJECT'}
           </button>
         </div>
 
-        {/* Form */}
         {showForm && (
-          <div className="animate-fade-in bg-gradient-to-b from-gray-900 to-black border border-gray-800 p-12 mb-16">
-            <h2 className="text-2xl font-black text-gray-300 mb-8 tracking-widest">CREATE PROJECT</h2>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="text-xs text-gray-500 tracking-widest uppercase mb-2 block">Project Name</label>
+          <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '40px', marginBottom: '40px' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '30px' }}>Create Project</h2>
+            <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '20px' }}>
+              <input
+                type="text"
+                placeholder="Project Name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                style={{
+                  padding: '12px',
+                  backgroundColor: '#000',
+                  border: '1px solid #333',
+                  color: '#fff',
+                  fontSize: '14px'
+                }}
+                required
+              />
+              <textarea
+                placeholder="Description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                style={{
+                  padding: '12px',
+                  backgroundColor: '#000',
+                  border: '1px solid #333',
+                  color: '#fff',
+                  fontSize: '14px',
+                  minHeight: '80px',
+                  fontFamily: 'inherit'
+                }}
+              />
+              <input
+                type="text"
+                placeholder="Client Name"
+                value={formData.clientName}
+                onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+                style={{
+                  padding: '12px',
+                  backgroundColor: '#000',
+                  border: '1px solid #333',
+                  color: '#fff',
+                  fontSize: '14px'
+                }}
+              />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <input
-                  type="text"
-                  placeholder="Enter project name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 bg-black border border-gray-700 text-gray-300 placeholder-gray-600 focus:border-gray-400 transition text-sm"
-                  required
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  style={{
+                    padding: '12px',
+                    backgroundColor: '#000',
+                    border: '1px solid #333',
+                    color: '#fff',
+                    fontSize: '14px'
+                  }}
                 />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 tracking-widest uppercase mb-2 block">Description</label>
-                <textarea
-                  placeholder="Project description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-3 bg-black border border-gray-700 text-gray-300 placeholder-gray-600 focus:border-gray-400 transition text-sm h-24 resize-none"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 tracking-widest uppercase mb-2 block">Client Name</label>
                 <input
-                  type="text"
-                  placeholder="Client name"
-                  value={formData.clientName}
-                  onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-                  className="w-full px-4 py-3 bg-black border border-gray-700 text-gray-300 placeholder-gray-600 focus:border-gray-400 transition text-sm"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  style={{
+                    padding: '12px',
+                    backgroundColor: '#000',
+                    border: '1px solid #333',
+                    color: '#fff',
+                    fontSize: '14px'
+                  }}
                 />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs text-gray-500 tracking-widest uppercase mb-2 block">Start Date</label>
-                  <input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    className="w-full px-4 py-3 bg-black border border-gray-700 text-gray-300 focus:border-gray-400 transition text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 tracking-widest uppercase mb-2 block">End Date</label>
-                  <input
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    className="w-full px-4 py-3 bg-black border border-gray-700 text-gray-300 focus:border-gray-400 transition text-sm"
-                  />
-                </div>
               </div>
               <button
                 type="submit"
-                className="w-full px-6 py-3 bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-700 hover:border-gray-500 text-sm tracking-widest font-semibold transition"
+                style={{
+                  padding: '12px',
+                  backgroundColor: '#111',
+                  color: '#fff',
+                  border: '1px solid #444',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
               >
                 CREATE
               </button>
@@ -150,49 +166,52 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Projects Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
           {projects.map((project) => (
             <Link
               key={project.id}
               href={`/project/${project.id}`}
-              className="animate-fade-in group"
+              style={{ textDecoration: 'none', color: 'inherit' }}
             >
-              <div className="bg-gradient-to-b from-gray-900 to-black border border-gray-800 hover:border-gray-600 p-8 transition duration-500 relative overflow-hidden h-full flex flex-col">
-                {/* Hover effect background */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-800 to-transparent opacity-0 group-hover:opacity-10 transition duration-500 -translate-x-full group-hover:translate-x-full"></div>
-                
-                <div className="relative z-10">
-                  <h3 className="text-xl font-black text-gray-300 mb-3 tracking-wider group-hover:text-white transition">
-                    {project.name}
-                  </h3>
-                  <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-                    {project.description}
-                  </p>
-                  <div className="space-y-3 text-xs text-gray-600">
-                    {project.clientName && (
-                      <p className="tracking-widest uppercase">Client: <span className="text-gray-400">{project.clientName}</span></p>
-                    )}
-                    <div className="flex justify-between items-center pt-4 border-t border-gray-800">
-                      <span className="tracking-widest uppercase text-gray-700">
-                        Status
-                      </span>
-                      <span className="text-gray-400 tracking-widest uppercase text-xs font-semibold px-3 py-1 border border-gray-700">
-                        {project.status}
-                      </span>
-                    </div>
-                  </div>
+              <div style={{
+                backgroundColor: '#111',
+                border: '1px solid #333',
+                padding: '30px',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                height: '100%'
+              }}
+              onMouseOver={(e) => {
+                const el = e.currentTarget as HTMLElement
+                el.style.borderColor = '#666'
+                el.style.backgroundColor = '#1a1a1a'
+              }}
+              onMouseOut={(e) => {
+                const el = e.currentTarget as HTMLElement
+                el.style.borderColor = '#333'
+                el.style.backgroundColor = '#111'
+              }}
+              >
+                <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px' }}>
+                  {project.name}
+                </h3>
+                <p style={{ fontSize: '14px', color: '#999', marginBottom: '20px', lineHeight: '1.5' }}>
+                  {project.description}
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#666' }}>
+                  <span>{project.clientName}</span>
+                  <span style={{ border: '1px solid #555', padding: '4px 12px', color: '#aaa' }}>
+                    {project.status}
+                  </span>
                 </div>
               </div>
             </Link>
           ))}
         </div>
 
-        {/* Empty State */}
         {projects.length === 0 && !showForm && (
-          <div className="text-center py-20">
-            <p className="text-gray-600 text-sm tracking-widest uppercase mb-4">NO PROJECTS YET</p>
-            <p className="text-gray-700 text-sm">Click "New Project" to create your first mood board</p>
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#666' }}>
+            <p>No projects yet. Create one to get started!</p>
           </div>
         )}
       </div>
