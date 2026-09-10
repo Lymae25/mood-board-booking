@@ -28,7 +28,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
         setScenes(s || [])
         const t = await fetch(`/api/timeline?projectId=${projectId}`).then(r => r.json())
         setTimeline(t || [])
-      } catch (e) {}
+      } catch (e) { console.error('Load error:', e) }
       setLoading(false)
     }
     load()
@@ -66,19 +66,23 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
 
   async function addScene(e: any) {
     e.preventDefault()
-    if (!sceneForm.title) return
+    console.log('addScene called, sceneForm:', sceneForm)
+    if (!sceneForm.title) { console.log('No title'); return }
     try {
       const nextSceneNumber = Math.max(0, ...scenes.map(s => s.sceneNumber)) + 1
+      console.log('Posting scene:', { projectId, sceneNumber: nextSceneNumber, ...sceneForm })
       const res = await fetch('/api/scenes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId, sceneNumber: nextSceneNumber, ...sceneForm }) })
       const newScene = await res.json()
+      console.log('Scene response:', newScene)
       setScenes([...scenes, newScene].sort((a, b) => a.sceneNumber - b.sceneNumber))
       setSceneForm({ title: '', description: '', imageUrl: '' })
       setShowSceneForm(false)
-    } catch (e) { console.error(e) }
+    } catch (e) { console.error('addScene error:', e) }
   }
 
   async function addIdea(e: any) {
     e.preventDefault()
+    console.log('addIdea called, ideaForm:', ideaForm)
     if (!ideaForm.title) return
     try {
       const res = await fetch('/api/ideas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId, ...ideaForm }) })
@@ -86,19 +90,20 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
       setIdeas([...ideas, newIdea])
       setIdeaForm({ title: '', description: '', category: '', imageUrl: '' })
       setShowIdeaForm(false)
-    } catch (e) { console.error(e) }
+    } catch (e) { console.error('addIdea error:', e) }
   }
 
   async function addTimeline(e: any) {
     e.preventDefault()
-    if (!timelineForm.title || !timelineForm.dueDate) return
+    console.log('addTimeline called, timelineForm:', timelineForm)
+    if (!timelineForm.title || !timelineForm.dueDate) { console.log('Missing required fields'); return }
     try {
       const res = await fetch('/api/timeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId, ...timelineForm }) })
       const newItem = await res.json()
       setTimeline([...timeline, newItem])
       setTimelineForm({ title: '', description: '', dueDate: '', status: 'pending', imageUrl: '' })
       setShowTimelineForm(false)
-    } catch (e) { console.error(e) }
+    } catch (e) { console.error('addTimeline error:', e) }
   }
 
   if (loading) return <div style={{ padding: '40px' }}>Loading...</div>
@@ -117,9 +122,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
         backgroundColor: dragActive === formType ? '#1a1a1a' : '#000',
         cursor: 'pointer',
         textAlign: 'center',
-        transition: 'all 0.2s',
-        position: 'relative',
-        zIndex: 1
+        transition: 'all 0.2s'
       }}
     >
       {form.imageUrl ? (
@@ -166,23 +169,23 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
         {activeTab === 'scenes' && (
           <div>
             {!showSceneForm && (
-              <button onClick={() => setShowSceneForm(true)} style={{ padding: '12px 24px', backgroundColor: '#111', border: '1px solid #333', color: '#fff', cursor: 'pointer', marginBottom: '40px', fontWeight: 'bold', position: 'relative', zIndex: 10 }}>
+              <button onClick={() => setShowSceneForm(true)} style={{ padding: '12px 24px', backgroundColor: '#111', border: '1px solid #333', color: '#fff', cursor: 'pointer', marginBottom: '40px', fontWeight: 'bold' }}>
                 + Add Scene
               </button>
             )}
 
             {showSceneForm && (
-              <form onSubmit={addScene} style={{ backgroundColor: '#111', border: '1px solid #333', padding: '30px', marginBottom: '40px', position: 'relative', zIndex: 100 }}>
+              <form onSubmit={addScene} style={{ backgroundColor: '#111', border: '1px solid #333', padding: '30px', marginBottom: '40px' }}>
                 <div style={{ marginBottom: '20px' }}>
-                  <input type="text" placeholder="Scene Title (e.g. Girl holding bottle)" value={sceneForm.title} onChange={(e) => setSceneForm({ ...sceneForm, title: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} required />
+                  <input type="text" placeholder="Scene Title (e.g. Girl holding bottle)" value={sceneForm.title} onChange={(e) => { console.log('Title changed to:', e.target.value); setSceneForm({ ...sceneForm, title: e.target.value }) }} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} required />
                 </div>
                 <div style={{ marginBottom: '20px' }}>
                   <textarea placeholder="Scene Description (what happens, shots, details...)" value={sceneForm.description} onChange={(e) => setSceneForm({ ...sceneForm, description: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px', minHeight: '80px', fontFamily: 'inherit' }} />
                 </div>
                 {renderImageDropZone(sceneForm, setSceneForm, 'scene')}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                  <button type="submit" style={{ padding: '12px 24px', backgroundColor: '#222', border: '1px solid #555', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', position: 'relative', zIndex: 101 }}>Save Scene</button>
-                  <button type="button" onClick={() => setShowSceneForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#666', cursor: 'pointer', fontSize: '14px', position: 'relative', zIndex: 101 }}>Cancel</button>
+                  <button type="submit" onClick={(e) => { console.log('Save Scene clicked'); addScene(e) }} style={{ padding: '12px 24px', backgroundColor: '#222', border: '1px solid #555', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>Save Scene</button>
+                  <button type="button" onClick={() => setShowSceneForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#666', cursor: 'pointer', fontSize: '14px' }}>Cancel</button>
                 </div>
               </form>
             )}
@@ -268,7 +271,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '8px' }}>Due Date</label>
-                    <input type="date" value={timelineForm.dueDate} onChange={(e) => setTimelineForm({ ...timelineForm, dueDate: e.target.value })} style={{ width: '100%', padding: '12px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} required />
+                    <input type="date" value={timelineForm.dueDate} onChange={(e) => { console.log('Date changed to:', e.target.value); setTimelineForm({ ...timelineForm, dueDate: e.target.value }) }} style={{ width: '100%', padding: '12px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} required />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '8px' }}>Status</label>
