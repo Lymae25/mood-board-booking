@@ -10,6 +10,8 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('scenes')
   const [selectedScene, setSelectedScene] = useState<any>(null)
+  const [sceneNotes, setSceneNotes] = useState<any[]>([])
+  const [newNote, setNewNote] = useState('')
   const [showIdeaForm, setShowIdeaForm] = useState(false)
   const [showSceneForm, setShowSceneForm] = useState(false)
   const [showTimelineForm, setShowTimelineForm] = useState(false)
@@ -34,6 +36,18 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
     }
     load()
   }, [projectId])
+
+  useEffect(() => {
+    if (selectedScene) {
+      const loadNotes = async () => {
+        try {
+          const notes = await fetch(`/api/notes?sceneId=${selectedScene.id}`).then(r => r.json())
+          setSceneNotes(notes || [])
+        } catch (e) { console.error('Load notes error:', e) }
+      }
+      loadNotes()
+    }
+  }, [selectedScene])
 
   const handleImageUpload = (file: File, formType: 'idea' | 'scene' | 'timeline') => {
     const reader = new FileReader()
@@ -79,6 +93,20 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
       setSceneForm({ title: '', description: '', imageUrl: '' })
       setShowSceneForm(false)
     } catch (e) { console.error('saveScene error:', e); alert('Error saving scene') }
+  }
+
+  async function saveNote() {
+    if (!newNote.trim() || !selectedScene) return
+    try {
+      const res = await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sceneId: selectedScene.id, projectId, content: newNote })
+      })
+      const note = await res.json()
+      setSceneNotes([note, ...sceneNotes])
+      setNewNote('')
+    } catch (e) { console.error('saveNote error:', e) }
   }
 
   async function saveIdea() {
@@ -217,18 +245,48 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
               </div>
             </div>
 
-            {/* Scene Details */}
+            {/* Scene Details with Notes */}
             {selectedScene && (
-              <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '40px' }}>
-                <h2 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '20px' }}>Scene {selectedScene.sceneNumber}: {selectedScene.title}</h2>
-                
-                {selectedScene.imageUrl && (
-                  <img src={selectedScene.imageUrl} alt={selectedScene.title} style={{ width: '100%', maxHeight: '400px', objectFit: 'cover', marginBottom: '30px' }} />
-                )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+                {/* Scene Info */}
+                <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '40px' }}>
+                  <h2 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '20px' }}>Scene {selectedScene.sceneNumber}: {selectedScene.title}</h2>
+                  
+                  {selectedScene.imageUrl && (
+                    <img src={selectedScene.imageUrl} alt={selectedScene.title} style={{ width: '100%', maxHeight: '300px', objectFit: 'cover', marginBottom: '30px' }} />
+                  )}
 
-                <div style={{ backgroundColor: '#000', padding: '25px', border: '1px solid #333' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px', color: '#fff' }}>What Happens</h3>
-                  <p style={{ color: '#ccc', fontSize: '15px', lineHeight: '1.8' }}>{selectedScene.description}</p>
+                  <div style={{ backgroundColor: '#000', padding: '25px', border: '1px solid #333' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px', color: '#fff' }}>What Happens</h3>
+                    <p style={{ color: '#ccc', fontSize: '15px', lineHeight: '1.8' }}>{selectedScene.description}</p>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '40px' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '25px' }}>Notes for Scene {selectedScene.sceneNumber}</h3>
+                  
+                  {/* Add Note */}
+                  <div style={{ marginBottom: '30px' }}>
+                    <textarea
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      placeholder="Add a note... (shots, timing, ideas)"
+                      style={{ width: '100%', padding: '15px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px', minHeight: '100px', fontFamily: 'inherit', marginBottom: '10px' }}
+                    />
+                    <button onClick={saveNote} style={{ padding: '10px 20px', backgroundColor: '#222', border: '1px solid #555', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>+ Add Note</button>
+                  </div>
+
+                  {/* Notes List */}
+                  <div style={{ display: 'grid', gap: '15px' }}>
+                    {sceneNotes.map((note: any) => (
+                      <div key={note.id} style={{ backgroundColor: '#000', padding: '15px', border: '1px solid #333' }}>
+                        <p style={{ color: '#ccc', fontSize: '14px', lineHeight: '1.6', marginBottom: '8px' }}>{note.content}</p>
+                        <p style={{ fontSize: '11px', color: '#666' }}>{new Date(note.createdAt).toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {sceneNotes.length === 0 && !newNote && <p style={{ color: '#666', fontSize: '14px' }}>No notes yet. Add one above!</p>}
                 </div>
               </div>
             )}
