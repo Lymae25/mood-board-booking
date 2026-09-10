@@ -48,3 +48,14 @@ export async function createTimelineItem(projectId: string, item: any) {
   await sql`INSERT INTO timeline (id, projectId, title, description, dueDate, status, imageUrl, createdAt) VALUES (${id}, ${projectId}, ${item.title}, ${item.description}, ${item.dueDate}, ${item.status}, ${item.imageUrl || ''}, ${new Date().toISOString()})`
   return { id, projectId, ...item, createdAt: new Date().toISOString() }
 }
+
+export async function deleteProject(projectId: string) {
+  try {
+    await sql`DELETE FROM projects WHERE id = ${projectId}`
+    await sql`DELETE FROM scenes WHERE projectId = ${projectId}`
+    await sql`DELETE FROM sceneNotes WHERE projectId = ${projectId}`
+    await sql`DELETE FROM ideas WHERE projectId = ${projectId}`
+    await sql`DELETE FROM timeline WHERE projectId = ${projectId}`
+    return true
+  } catch (e) { console.error('deleteProject error:', e); return false }
+}
