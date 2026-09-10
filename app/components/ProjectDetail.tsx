@@ -64,25 +64,25 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
     }
   }
 
-  async function addScene(e: any) {
-    e.preventDefault()
-    console.log('addScene called, sceneForm:', sceneForm)
-    if (!sceneForm.title) { console.log('No title'); return }
+  async function saveScene() {
+    console.log('saveScene called')
+    if (!sceneForm.title) { alert('Scene title required'); return }
     try {
       const nextSceneNumber = Math.max(0, ...scenes.map(s => s.sceneNumber)) + 1
-      console.log('Posting scene:', { projectId, sceneNumber: nextSceneNumber, ...sceneForm })
-      const res = await fetch('/api/scenes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId, sceneNumber: nextSceneNumber, ...sceneForm }) })
+      const res = await fetch('/api/scenes', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ projectId, sceneNumber: nextSceneNumber, ...sceneForm }) 
+      })
       const newScene = await res.json()
-      console.log('Scene response:', newScene)
+      console.log('Scene saved:', newScene)
       setScenes([...scenes, newScene].sort((a, b) => a.sceneNumber - b.sceneNumber))
       setSceneForm({ title: '', description: '', imageUrl: '' })
       setShowSceneForm(false)
-    } catch (e) { console.error('addScene error:', e) }
+    } catch (e) { console.error('saveScene error:', e); alert('Error saving scene') }
   }
 
-  async function addIdea(e: any) {
-    e.preventDefault()
-    console.log('addIdea called, ideaForm:', ideaForm)
+  async function saveIdea() {
     if (!ideaForm.title) return
     try {
       const res = await fetch('/api/ideas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId, ...ideaForm }) })
@@ -90,20 +90,18 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
       setIdeas([...ideas, newIdea])
       setIdeaForm({ title: '', description: '', category: '', imageUrl: '' })
       setShowIdeaForm(false)
-    } catch (e) { console.error('addIdea error:', e) }
+    } catch (e) { console.error('saveIdea error:', e) }
   }
 
-  async function addTimeline(e: any) {
-    e.preventDefault()
-    console.log('addTimeline called, timelineForm:', timelineForm)
-    if (!timelineForm.title || !timelineForm.dueDate) { console.log('Missing required fields'); return }
+  async function saveTimeline() {
+    if (!timelineForm.title || !timelineForm.dueDate) return
     try {
       const res = await fetch('/api/timeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId, ...timelineForm }) })
       const newItem = await res.json()
       setTimeline([...timeline, newItem])
       setTimelineForm({ title: '', description: '', dueDate: '', status: 'pending', imageUrl: '' })
       setShowTimelineForm(false)
-    } catch (e) { console.error('addTimeline error:', e) }
+    } catch (e) { console.error('saveTimeline error:', e) }
   }
 
   if (loading) return <div style={{ padding: '40px' }}>Loading...</div>
@@ -175,19 +173,19 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
             )}
 
             {showSceneForm && (
-              <form onSubmit={addScene} style={{ backgroundColor: '#111', border: '1px solid #333', padding: '30px', marginBottom: '40px' }}>
+              <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '30px', marginBottom: '40px' }}>
                 <div style={{ marginBottom: '20px' }}>
-                  <input type="text" placeholder="Scene Title (e.g. Girl holding bottle)" value={sceneForm.title} onChange={(e) => { console.log('Title changed to:', e.target.value); setSceneForm({ ...sceneForm, title: e.target.value }) }} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} required />
+                  <input type="text" placeholder="Scene Title" value={sceneForm.title} onChange={(e) => setSceneForm({ ...sceneForm, title: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} />
                 </div>
                 <div style={{ marginBottom: '20px' }}>
-                  <textarea placeholder="Scene Description (what happens, shots, details...)" value={sceneForm.description} onChange={(e) => setSceneForm({ ...sceneForm, description: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px', minHeight: '80px', fontFamily: 'inherit' }} />
+                  <textarea placeholder="Scene Description" value={sceneForm.description} onChange={(e) => setSceneForm({ ...sceneForm, description: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px', minHeight: '80px', fontFamily: 'inherit' }} />
                 </div>
                 {renderImageDropZone(sceneForm, setSceneForm, 'scene')}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                  <button type="submit" onClick={(e) => { console.log('Save Scene clicked'); addScene(e) }} style={{ padding: '12px 24px', backgroundColor: '#222', border: '1px solid #555', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>Save Scene</button>
-                  <button type="button" onClick={() => setShowSceneForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#666', cursor: 'pointer', fontSize: '14px' }}>Cancel</button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={saveScene} style={{ padding: '12px 24px', backgroundColor: '#222', border: '1px solid #555', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>Save Scene</button>
+                  <button onClick={() => setShowSceneForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#666', cursor: 'pointer', fontSize: '14px' }}>Cancel</button>
                 </div>
-              </form>
+              </div>
             )}
 
             <div style={{ display: 'grid', gap: '20px' }}>
@@ -220,9 +218,9 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
             )}
 
             {showIdeaForm && (
-              <form onSubmit={addIdea} style={{ backgroundColor: '#111', border: '1px solid #333', padding: '30px', marginBottom: '40px' }}>
+              <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '30px', marginBottom: '40px' }}>
                 <div style={{ marginBottom: '20px' }}>
-                  <input type="text" placeholder="Title" value={ideaForm.title} onChange={(e) => setIdeaForm({ ...ideaForm, title: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} required />
+                  <input type="text" placeholder="Title" value={ideaForm.title} onChange={(e) => setIdeaForm({ ...ideaForm, title: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} />
                 </div>
                 <div style={{ marginBottom: '20px' }}>
                   <textarea placeholder="Description" value={ideaForm.description} onChange={(e) => setIdeaForm({ ...ideaForm, description: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px', minHeight: '60px', fontFamily: 'inherit' }} />
@@ -231,11 +229,11 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
                   <input type="text" placeholder="Category" value={ideaForm.category} onChange={(e) => setIdeaForm({ ...ideaForm, category: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} />
                 </div>
                 {renderImageDropZone(ideaForm, setIdeaForm, 'idea')}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                  <button type="submit" style={{ padding: '12px 24px', backgroundColor: '#222', border: '1px solid #555', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>Save</button>
-                  <button type="button" onClick={() => setShowIdeaForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#666', cursor: 'pointer', fontSize: '14px' }}>Cancel</button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={saveIdea} style={{ padding: '12px 24px', backgroundColor: '#222', border: '1px solid #555', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>Save</button>
+                  <button onClick={() => setShowIdeaForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#666', cursor: 'pointer', fontSize: '14px' }}>Cancel</button>
                 </div>
-              </form>
+              </div>
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
@@ -261,17 +259,17 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
             )}
 
             {showTimelineForm && (
-              <form onSubmit={addTimeline} style={{ backgroundColor: '#111', border: '1px solid #333', padding: '30px', marginBottom: '40px' }}>
+              <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '30px', marginBottom: '40px' }}>
                 <div style={{ marginBottom: '20px' }}>
-                  <input type="text" placeholder="Title" value={timelineForm.title} onChange={(e) => setTimelineForm({ ...timelineForm, title: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} required />
+                  <input type="text" placeholder="Title" value={timelineForm.title} onChange={(e) => setTimelineForm({ ...timelineForm, title: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} />
                 </div>
                 <div style={{ marginBottom: '20px' }}>
-                  <textarea placeholder="What's in this clip? Scenes, shots, ideas..." value={timelineForm.description} onChange={(e) => setTimelineForm({ ...timelineForm, description: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px', minHeight: '60px', fontFamily: 'inherit' }} />
+                  <textarea placeholder="Description" value={timelineForm.description} onChange={(e) => setTimelineForm({ ...timelineForm, description: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px', minHeight: '60px', fontFamily: 'inherit' }} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '8px' }}>Due Date</label>
-                    <input type="date" value={timelineForm.dueDate} onChange={(e) => { console.log('Date changed to:', e.target.value); setTimelineForm({ ...timelineForm, dueDate: e.target.value }) }} style={{ width: '100%', padding: '12px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} required />
+                    <input type="date" value={timelineForm.dueDate} onChange={(e) => setTimelineForm({ ...timelineForm, dueDate: e.target.value })} style={{ width: '100%', padding: '12px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '8px' }}>Status</label>
@@ -283,11 +281,11 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
                   </div>
                 </div>
                 {renderImageDropZone(timelineForm, setTimelineForm, 'timeline')}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                  <button type="submit" style={{ padding: '12px 24px', backgroundColor: '#222', border: '1px solid #555', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>Save</button>
-                  <button type="button" onClick={() => setShowTimelineForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#666', cursor: 'pointer', fontSize: '14px' }}>Cancel</button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={saveTimeline} style={{ padding: '12px 24px', backgroundColor: '#222', border: '1px solid #555', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>Save</button>
+                  <button onClick={() => setShowTimelineForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#666', cursor: 'pointer', fontSize: '14px' }}>Cancel</button>
                 </div>
-              </form>
+              </div>
             )}
 
             <div style={{ display: 'grid', gap: '20px' }}>
