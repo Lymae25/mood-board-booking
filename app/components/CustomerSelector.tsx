@@ -10,7 +10,6 @@ export default function CustomerSelector() {
   const [error, setError] = useState('')
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [selectedPosition, setSelectedPosition] = useState<{ x: number, y: number } | null>(null)
   const rotationsRef = useRef<{ [id: string]: number }>({})
   const speedsRef = useRef<{ [id: string]: number }>({})
   const targetSpeedsRef = useRef<{ [id: string]: number }>({})
@@ -24,12 +23,10 @@ export default function CustomerSelector() {
   }, [])
 
   function getNormalSpeed(idx: number) {
-    // Degrees per second (smooth, slow rotation)
     const speeds = [18, -14, 20, -12, 16, -15]
     return speeds[idx % 6]
   }
 
-  // Initialize rotations and speeds
   useEffect(() => {
     customers.forEach((c, i) => {
       if (rotationsRef.current[c.id] === undefined) rotationsRef.current[c.id] = 0
@@ -38,14 +35,12 @@ export default function CustomerSelector() {
     })
   }, [customers])
 
-  // Update target speeds when hover changes
   useEffect(() => {
     if (selectedId) return
     customers.forEach((c, i) => {
       if (hoveredId === c.id) {
-        targetSpeedsRef.current[c.id] = 0 // Hovered - stops
+        targetSpeedsRef.current[c.id] = 0
       } else if (hoveredId !== null) {
-        // Panic mode - super fast, keeping direction
         const normal = getNormalSpeed(i)
         targetSpeedsRef.current[c.id] = normal > 0 ? 600 : -600
       } else {
@@ -54,7 +49,6 @@ export default function CustomerSelector() {
     })
   }, [hoveredId, customers, selectedId])
 
-  // Animation loop - continuously updates rotations and eases speeds
   useEffect(() => {
     if (customers.length === 0) return
 
@@ -65,7 +59,6 @@ export default function CustomerSelector() {
       customers.forEach(c => {
         const current = speedsRef.current[c.id] || 0
         const target = targetSpeedsRef.current[c.id] || 0
-        // Smooth easing toward target - exponential
         const diff = target - current
         speedsRef.current[c.id] = current + diff * Math.min(1, dt * 1.2)
         rotationsRef.current[c.id] = (rotationsRef.current[c.id] || 0) + speedsRef.current[c.id] * dt
@@ -82,14 +75,8 @@ export default function CustomerSelector() {
     }
   }, [customers])
 
-  function handleSelect(customerId: string, e: any) {
+  function handleSelect(customerId: string) {
     if (selectedId) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    const centerX = rect.left + rect.width / 2
-    const centerY = rect.top + rect.height / 2
-    const viewportCenterX = window.innerWidth / 2
-    const viewportCenterY = window.innerHeight / 2
-    setSelectedPosition({ x: viewportCenterX - centerX, y: viewportCenterY - centerY })
     setSelectedId(customerId)
     setTimeout(() => { router.push(`/pin/${customerId}`) }, 1600)
   }
@@ -101,7 +88,7 @@ export default function CustomerSelector() {
   if (loading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>LOADING</div>
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', perspective: '1200px' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
       <style>{`
         @keyframes float-1 { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
         @keyframes float-2 { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-12px); } }
@@ -124,7 +111,7 @@ export default function CustomerSelector() {
       <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', marginBottom: '20px', textTransform: 'uppercase', opacity: selectedId ? 0 : 1, transition: 'opacity 0.6s' }}>MOOD BOARD</h1>
       <p style={{ fontSize: '14px', color: '#999', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '80px', opacity: selectedId ? 0 : 1, transition: 'opacity 0.6s' }}>Vælg bruger</p>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '40px', maxWidth: '1200px', width: '100%', marginBottom: '80px', transformStyle: 'preserve-3d' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '40px', maxWidth: '1200px', width: '100%', marginBottom: '80px' }}>
         {customers.map((c: any, idx: number) => {
           const isNervous = hoveredId === c.id && !selectedId
           const isFalling = selectedId !== null && selectedId !== c.id
@@ -136,7 +123,6 @@ export default function CustomerSelector() {
             isNervous ? 'is-nervous' : ''
           ].filter(Boolean).join(' ')
 
-          // Random fall variations for cinematic effect
           const fallOffsetX = (Math.sin(idx * 2.3) * 100)
           const fallRotation = 45 + (idx * 37) % 90
 
@@ -144,14 +130,10 @@ export default function CustomerSelector() {
             ? `translate(${fallOffsetX}px, 120vh) rotate(${fallRotation}deg)`
             : ''
 
-          const zoomTransform = isSelected && selectedPosition
-            ? `translate(${selectedPosition.x}px, ${selectedPosition.y}px) scale(5) translateZ(300px)`
-            : ''
-
           return (
             <div
               key={c.id}
-              onClick={(e) => !selectedId && handleSelect(c.id, e)}
+              onClick={() => !selectedId && handleSelect(c.id)}
               onMouseEnter={() => !selectedId && setHoveredId(c.id)}
               onMouseLeave={() => !selectedId && setHoveredId(null)}
               className={wrapClasses}
@@ -159,9 +141,8 @@ export default function CustomerSelector() {
                 cursor: selectedId ? 'default' : 'pointer',
                 textAlign: 'center',
                 position: 'relative',
-                transformStyle: 'preserve-3d',
-                transform: fallTransform || zoomTransform || undefined,
-                transition: (isFalling || isSelected) ? 'transform 1.6s cubic-bezier(0.55, 0.05, 0.6, 0.95), opacity 1.6s ease-in' : undefined,
+                transform: fallTransform || undefined,
+                transition: isFalling ? 'transform 1.4s cubic-bezier(0.55, 0.05, 0.6, 0.95), opacity 1.4s ease-in' : undefined,
                 opacity: isFalling ? 0 : 1,
                 zIndex: isSelected ? 100 : 1
               }}
@@ -185,7 +166,7 @@ export default function CustomerSelector() {
               >
                 {c.logoUrl ? <img src={c.logoUrl} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '48px', color: '#666' }}>{c.name.charAt(0)}</span>}
               </div>
-              <p style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', opacity: isSelected || isFalling ? 0 : 1, transition: 'opacity 0.4s' }}>{c.name}</p>
+              <p style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', opacity: isFalling ? 0 : 1, transition: 'opacity 0.4s' }}>{c.name}</p>
             </div>
           )
         })}
