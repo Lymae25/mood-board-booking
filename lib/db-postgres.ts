@@ -15,7 +15,8 @@ export async function initDB() {
   try {
     const sql = getDb()
     await sql`CREATE TABLE IF NOT EXISTS customers ("id" TEXT PRIMARY KEY, "name" TEXT NOT NULL, "logoUrl" TEXT, "pin" TEXT NOT NULL, "createdAt" TEXT)`
-    await sql`CREATE TABLE IF NOT EXISTS projects ("id" TEXT PRIMARY KEY, "customerId" TEXT, "name" TEXT NOT NULL, "description" TEXT, "clientName" TEXT, "logoUrl" TEXT, "status" TEXT, "startDate" TEXT, "endDate" TEXT, "createdAt" TEXT)`
+    await sql`CREATE TABLE IF NOT EXISTS projects ("id" TEXT PRIMARY KEY, "name" TEXT NOT NULL, "description" TEXT, "clientName" TEXT, "logoUrl" TEXT, "status" TEXT, "startDate" TEXT, "endDate" TEXT, "createdAt" TEXT)`
+    await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS "customerId" TEXT`
     await sql`CREATE TABLE IF NOT EXISTS scenes ("id" TEXT PRIMARY KEY, "projectId" TEXT NOT NULL, "sceneNumber" INTEGER, "title" TEXT NOT NULL, "description" TEXT, "imageUrl" TEXT, "createdAt" TEXT)`
     await sql`CREATE TABLE IF NOT EXISTS sceneNotes ("id" TEXT PRIMARY KEY, "sceneId" TEXT NOT NULL, "projectId" TEXT NOT NULL, "content" TEXT NOT NULL, "createdAt" TEXT)`
     await sql`CREATE TABLE IF NOT EXISTS ideas ("id" TEXT PRIMARY KEY, "projectId" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "imageUrl" TEXT, "category" TEXT, "createdAt" TEXT)`
