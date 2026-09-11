@@ -62,6 +62,7 @@ export const translations: Record<Language, TranslationTree> = {
       descriptionPlaceholder: 'Beskrivelse - hvad sker der?',
       referenceLink: 'Reference Link (Instagram, YouTube, TikTok...)',
       referenceNotePlaceholder: "Note til reference (fx 'skal være noget ala det her')",
+      imageUrl: 'Billede URL',
       dragDropImage: 'Drag & drop billede eller klik',
       reference: 'REFERENCE',
       notes: 'Noter',
@@ -128,13 +129,36 @@ export const translations: Record<Language, TranslationTree> = {
       calendarLegendDone: 'Færdig',
       calendarWeekdays: 'MAN,TIR,ON,TOR,FRE,LØR,SØN',
       calendarDeadlineKind: 'Deadline',
-      calendarMilestoneKind: 'Milestone'
+      calendarMilestoneKind: 'Milestone',
+      calendarMeetingKind: 'Aftale',
+      createMeetingBtn: 'Opret Aftale',
+      meetingModalTitle: 'Ny Aftale',
+      meetingDateLabel: 'Dato',
+      meetingTimeLabel: 'Tidspunkt',
+      meetingDurationLabel: 'Varighed (minutter)',
+      meetingTypeLabel: 'Type',
+      meetingLocationLabel: 'Sted',
+      deleteMeetingConfirm: 'Slet aftale?',
+      meetingTypeCoffee: 'Kaffemøde',
+      meetingTypeProduction: 'Produktion',
+      meetingTypeReview: 'Review',
+      meetingTypeOther: 'Andet'
     },
     chat: {
       title: 'Besked til Admin',
       typeMessage: 'Skriv en besked...',
       tagScene: 'Tag en scene (valgfri)',
       emptyState: 'Skriv til admin herunder'
+    },
+    upload: {
+      dragDrop: 'Drag & drop fil eller klik',
+      chooseFile: 'Vælg fil',
+      uploadingLabel: 'Uploader...',
+      orLabel: 'eller',
+      errorNoFile: 'Ingen fil modtaget',
+      errorTooLarge: 'Filen er for stor (max 10MB)',
+      errorInvalidType: 'Filtype ikke tilladt',
+      errorServer: 'Upload fejlede'
     }
   },
   en: {
@@ -190,6 +214,7 @@ export const translations: Record<Language, TranslationTree> = {
       descriptionPlaceholder: "Description - what's happening?",
       referenceLink: 'Reference Link (Instagram, YouTube, TikTok...)',
       referenceNotePlaceholder: "Note for reference (e.g. 'should be something like this')",
+      imageUrl: 'Image URL',
       dragDropImage: 'Drag & drop image or click',
       reference: 'REFERENCE',
       notes: 'Notes',
@@ -256,13 +281,36 @@ export const translations: Record<Language, TranslationTree> = {
       calendarLegendDone: 'Done',
       calendarWeekdays: 'MON,TUE,WED,THU,FRI,SAT,SUN',
       calendarDeadlineKind: 'Deadline',
-      calendarMilestoneKind: 'Milestone'
+      calendarMilestoneKind: 'Milestone',
+      calendarMeetingKind: 'Meeting',
+      createMeetingBtn: 'Create Meeting',
+      meetingModalTitle: 'New Meeting',
+      meetingDateLabel: 'Date',
+      meetingTimeLabel: 'Time',
+      meetingDurationLabel: 'Duration (minutes)',
+      meetingTypeLabel: 'Type',
+      meetingLocationLabel: 'Location',
+      deleteMeetingConfirm: 'Delete meeting?',
+      meetingTypeCoffee: 'Coffee',
+      meetingTypeProduction: 'Production',
+      meetingTypeReview: 'Review',
+      meetingTypeOther: 'Other'
     },
     chat: {
       title: 'Message to Admin',
       typeMessage: 'Type a message...',
       tagScene: 'Tag a scene (optional)',
       emptyState: 'Write to admin below'
+    },
+    upload: {
+      dragDrop: 'Drag & drop file or click',
+      chooseFile: 'Choose file',
+      uploadingLabel: 'Uploading...',
+      orLabel: 'or',
+      errorNoFile: 'No file received',
+      errorTooLarge: 'File is too large (max 10MB)',
+      errorInvalidType: 'File type not allowed',
+      errorServer: 'Upload failed'
     }
   },
   tl: {
@@ -318,6 +366,7 @@ export const translations: Record<Language, TranslationTree> = {
       descriptionPlaceholder: 'Paglalarawan - ano ang nangyayari?',
       referenceLink: 'Link ng Reperensiya (Instagram, YouTube, TikTok...)',
       referenceNotePlaceholder: "Tala para sa reperensiya (hal. 'dapat parang ganito')",
+      imageUrl: 'Larawan URL',
       dragDropImage: 'I-drag & drop ang larawan o i-click',
       reference: 'REPERENSIYA',
       notes: 'Mga Tala',
@@ -384,13 +433,36 @@ export const translations: Record<Language, TranslationTree> = {
       calendarLegendDone: 'Tapos na',
       calendarWeekdays: 'LUN,MAR,MIY,HUW,BIY,SAB,LIN',
       calendarDeadlineKind: 'Deadline',
-      calendarMilestoneKind: 'Milestone'
+      calendarMilestoneKind: 'Milestone',
+      calendarMeetingKind: 'Miting',
+      createMeetingBtn: 'Gumawa ng Miting',
+      meetingModalTitle: 'Bagong Miting',
+      meetingDateLabel: 'Petsa',
+      meetingTimeLabel: 'Oras',
+      meetingDurationLabel: 'Tagal (minuto)',
+      meetingTypeLabel: 'Uri',
+      meetingLocationLabel: 'Lokasyon',
+      deleteMeetingConfirm: 'Tanggalin ang miting?',
+      meetingTypeCoffee: 'Kape',
+      meetingTypeProduction: 'Produksyon',
+      meetingTypeReview: 'Review',
+      meetingTypeOther: 'Iba pa'
     },
     chat: {
       title: 'Mensahe sa Admin',
       typeMessage: 'Mag-type ng mensahe...',
       tagScene: 'Mag-tag ng eksena (opsyonal)',
       emptyState: 'Sumulat sa admin sa ibaba'
+    },
+    upload: {
+      dragDrop: 'I-drag & drop ang file o i-click',
+      chooseFile: 'Pumili ng file',
+      uploadingLabel: 'Ina-upload...',
+      orLabel: 'o',
+      errorNoFile: 'Walang natanggap na file',
+      errorTooLarge: 'Masyadong malaki ang file (max 10MB)',
+      errorInvalidType: 'Hindi pinapayagan ang file type',
+      errorServer: 'Nabigo ang pag-upload'
     }
   }
 }

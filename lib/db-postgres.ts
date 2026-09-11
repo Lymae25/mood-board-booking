@@ -22,6 +22,7 @@ export async function initDB() {
     await sql`CREATE TABLE IF NOT EXISTS ideas ("id" TEXT PRIMARY KEY, "projectId" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "imageUrl" TEXT, "category" TEXT, "createdAt" TEXT)`
     await sql`CREATE TABLE IF NOT EXISTS timeline ("id" TEXT PRIMARY KEY, "projectId" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "dueDate" TEXT, "status" TEXT, "imageUrl" TEXT, "createdAt" TEXT)`
     await sql`CREATE TABLE IF NOT EXISTS messages ("id" TEXT PRIMARY KEY, "customerId" TEXT NOT NULL, "sender" TEXT NOT NULL, "content" TEXT NOT NULL, "sceneRef" TEXT, "projectRef" TEXT, "readByAdmin" BOOLEAN DEFAULT FALSE, "readByCustomer" BOOLEAN DEFAULT FALSE, "createdAt" TEXT)`
+    await sql`CREATE TABLE IF NOT EXISTS meetings ("id" TEXT PRIMARY KEY, "customerId" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "meetingDate" TEXT NOT NULL, "meetingTime" TEXT NOT NULL, "duration" INTEGER, "meetingType" TEXT, "location" TEXT, "createdAt" TEXT)`
   } catch (e) { console.error('DB init error:', e) }
 }
 
@@ -180,4 +181,25 @@ export async function markMessagesRead(customerId: string, reader: 'admin' | 'cu
     }
     return true
   } catch (e) { console.error('markMessagesRead error:', e); return false }
+}
+
+export async function getMeetings() {
+  try { const sql = getDb(); return await sql`SELECT * FROM meetings ORDER BY "meetingDate" ASC, "meetingTime" ASC` } catch (e) { return [] }
+}
+
+export async function createMeeting(data: any) {
+  const sql = getDb()
+  const id = Date.now().toString()
+  const duration = parseInt(data.duration, 10) || 60
+  const createdAt = new Date().toISOString()
+  await sql`INSERT INTO meetings ("id", "customerId", "title", "description", "meetingDate", "meetingTime", "duration", "meetingType", "location", "createdAt") VALUES (${id}, ${data.customerId}, ${data.title}, ${data.description || ''}, ${data.meetingDate}, ${data.meetingTime}, ${duration}, ${data.meetingType || 'other'}, ${data.location || ''}, ${createdAt})`
+  return { id, customerId: data.customerId, title: data.title, description: data.description || '', meetingDate: data.meetingDate, meetingTime: data.meetingTime, duration, meetingType: data.meetingType || 'other', location: data.location || '', createdAt }
+}
+
+export async function deleteMeeting(id: string) {
+  try {
+    const sql = getDb()
+    await sql`DELETE FROM meetings WHERE "id" = ${id}`
+    return true
+  } catch (e) { console.error('deleteMeeting error:', e); return false }
 }

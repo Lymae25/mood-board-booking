@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import ChatWidget from './ChatWidget'
 import LanguageSwitcher from './LanguageSwitcher'
+import FileUploader from './FileUploader'
 import { useTranslation } from '@/lib/useTranslation'
 
 export default function ProjectDetail({ projectId }: { projectId: string }) {
@@ -47,23 +48,6 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
     const res = await fetch(`/api/notes?sceneId=${sceneId}`)
     const data = await res.json()
     setNotes(data || [])
-  }
-
-  function handleImageUpload(e: any, setter: any, form: any) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => { setter({ ...form, imageUrl: reader.result as string }) }
-    reader.readAsDataURL(file)
-  }
-
-  function handleDrop(e: any, setter: any, form: any) {
-    e.preventDefault()
-    const file = e.dataTransfer.files?.[0]
-    if (!file || !file.type.startsWith('image/')) return
-    const reader = new FileReader()
-    reader.onload = () => { setter({ ...form, imageUrl: reader.result as string }) }
-    reader.readAsDataURL(file)
   }
 
   async function createScene() {
@@ -160,10 +144,10 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
                 <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px', marginTop: '10px' }}>{t('project.referenceLink', 'Reference Link (Instagram, YouTube, TikTok...)')}</label>
                 <input placeholder="https://..." value={sceneForm.referenceUrl} onChange={(e) => setSceneForm({ ...sceneForm, referenceUrl: e.target.value })} style={inputStyle} />
                 <textarea placeholder={t('project.referenceNotePlaceholder', "Note til reference (fx 'skal være noget ala det her')")} value={sceneForm.referenceNote} onChange={(e) => setSceneForm({ ...sceneForm, referenceNote: e.target.value })} style={{ ...inputStyle, minHeight: '60px', resize: 'none' }} />
-                <div onDrop={(e) => handleDrop(e, setSceneForm, sceneForm)} onDragOver={(e) => e.preventDefault()} style={{ border: '1px dashed #333', padding: '20px', textAlign: 'center', marginBottom: '15px', cursor: 'pointer' }} onClick={() => document.getElementById('scene-file')?.click()}>
-                  {sceneForm.imageUrl ? <img src={sceneForm.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: '200px' }} /> : <span style={{ color: '#666', fontSize: '12px' }}>{t('project.dragDropImage', 'Drag & drop billede eller klik')}</span>}
-                  <input type="file" id="scene-file" accept="image/*" onChange={(e) => handleImageUpload(e, setSceneForm, sceneForm)} style={{ display: 'none' }} />
-                </div>
+                <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('project.imageUrl', 'Billede URL')}</label>
+                <input placeholder="https://..." value={sceneForm.imageUrl} onChange={(e) => setSceneForm({ ...sceneForm, imageUrl: e.target.value })} style={inputStyle} />
+                <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', margin: '-8px 0 10px' }}>{t('upload.orLabel', 'eller')}</p>
+                <FileUploader value={sceneForm.imageUrl} onUploaded={(url) => setSceneForm({ ...sceneForm, imageUrl: url })} />
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={createScene} style={btnStyle}>{t('common.save', 'Gem')}</button>
                   <button onClick={() => setShowSceneForm(false)} style={btnGhost}>{t('common.cancel', 'Annuller')}</button>
@@ -231,10 +215,10 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
                 <input placeholder={t('project.titlePlaceholder', 'Titel')} value={ideaForm.title} onChange={(e) => setIdeaForm({ ...ideaForm, title: e.target.value })} style={inputStyle} />
                 <textarea placeholder={t('project.ideaNotePlaceholder', "Note (fx 'skal være noget ala det her')")} value={ideaForm.description} onChange={(e) => setIdeaForm({ ...ideaForm, description: e.target.value })} style={{ ...inputStyle, minHeight: '80px', resize: 'none' }} />
                 <input placeholder={t('project.linkPlaceholder', 'Link (Instagram, YouTube, TikTok...)')} value={ideaForm.category} onChange={(e) => setIdeaForm({ ...ideaForm, category: e.target.value })} style={inputStyle} />
-                <div onDrop={(e) => handleDrop(e, setIdeaForm, ideaForm)} onDragOver={(e) => e.preventDefault()} style={{ border: '1px dashed #333', padding: '20px', textAlign: 'center', marginBottom: '15px', cursor: 'pointer' }} onClick={() => document.getElementById('idea-file')?.click()}>
-                  {ideaForm.imageUrl ? <img src={ideaForm.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: '200px' }} /> : <span style={{ color: '#666', fontSize: '12px' }}>{t('project.dragDropImageOptional', 'Drag & drop billede eller klik (valgfrit)')}</span>}
-                  <input type="file" id="idea-file" accept="image/*" onChange={(e) => handleImageUpload(e, setIdeaForm, ideaForm)} style={{ display: 'none' }} />
-                </div>
+                <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('project.imageUrl', 'Billede URL')}</label>
+                <input placeholder="https://..." value={ideaForm.imageUrl} onChange={(e) => setIdeaForm({ ...ideaForm, imageUrl: e.target.value })} style={inputStyle} />
+                <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', margin: '-8px 0 10px' }}>{t('upload.orLabel', 'eller')}</p>
+                <FileUploader value={ideaForm.imageUrl} onUploaded={(url) => setIdeaForm({ ...ideaForm, imageUrl: url })} />
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={createIdea} style={btnStyle}>{t('common.save', 'Gem')}</button>
                   <button onClick={() => setShowIdeaForm(false)} style={btnGhost}>{t('common.cancel', 'Annuller')}</button>

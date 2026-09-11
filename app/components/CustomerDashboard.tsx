@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import StatusBadge, { getStatusStyle } from './StatusBadge'
 import ChatWidget from './ChatWidget'
 import LanguageSwitcher from './LanguageSwitcher'
+import FileUploader from './FileUploader'
 import { useTranslation } from '@/lib/useTranslation'
 
 export default function CustomerDashboard({ customerId }: { customerId: string }) {
@@ -129,7 +130,9 @@ export default function CustomerDashboard({ customerId }: { customerId: string }
             </div>
             <div style={{ marginBottom: '40px' }}>
               <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.logoUrl', 'Logo URL')}</label>
-              <input type="url" value={form.logoUrl} onChange={(e) => setForm({ ...form, logoUrl: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} />
+              <input type="url" value={form.logoUrl} onChange={(e) => setForm({ ...form, logoUrl: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none', marginBottom: '15px' }} />
+              <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{t('upload.orLabel', 'eller')}</p>
+              <FileUploader value={form.logoUrl} onUploaded={(url) => setForm({ ...form, logoUrl: url })} />
             </div>
             <div style={{ display: 'flex', gap: '20px' }}>
               <button type="submit" style={{ padding: '12px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.create', 'Opret')}</button>

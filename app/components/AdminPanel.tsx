@@ -4,7 +4,19 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import StatusBadge, { STATUSES } from './StatusBadge'
 import LanguageSwitcher from './LanguageSwitcher'
+import FileUploader from './FileUploader'
 import { useTranslation } from '@/lib/useTranslation'
+
+const MEETING_TYPES = [
+  { key: 'coffee', labelKey: 'admin.meetingTypeCoffee', label: 'Kaffemøde', color: '#f97316' },
+  { key: 'production', labelKey: 'admin.meetingTypeProduction', label: 'Produktion', color: '#3b82f6' },
+  { key: 'review', labelKey: 'admin.meetingTypeReview', label: 'Review', color: '#a855f7' },
+  { key: 'other', labelKey: 'admin.meetingTypeOther', label: 'Andet', color: '#6b7280' }
+]
+
+function meetingTypeInfo(key: string) {
+  return MEETING_TYPES.find(m => m.key === key) || MEETING_TYPES[3]
+}
 
 export default function AdminPanel() {
   const [customers, setCustomers] = useState<any[]>([])
@@ -29,6 +41,9 @@ export default function AdminPanel() {
   const [timeline, setTimeline] = useState<any[]>([])
   const [calendarMonth, setCalendarMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [meetings, setMeetings] = useState<any[]>([])
+  const [showMeetingForm, setShowMeetingForm] = useState(false)
+  const [meetingForm, setMeetingForm] = useState({ customerId: '', title: '', description: '', meetingDate: '', meetingTime: '', duration: '60', meetingType: 'coffee', location: '' })
   const { t } = useTranslation()
 
   useEffect(() => { loadData() }, [])
@@ -65,15 +80,33 @@ export default function AdminPanel() {
   }
 
   async function loadData() {
-    const [c, p, t] = await Promise.all([
+    const [c, p, t, m] = await Promise.all([
       fetch('/api/customers?admin=1010').then(r => r.json()),
       fetch('/api/projects').then(r => r.json()),
-      fetch('/api/timeline?admin=1010').then(r => r.json())
+      fetch('/api/timeline?admin=1010').then(r => r.json()),
+      fetch('/api/meetings').then(r => r.json())
     ])
     setCustomers(c || [])
     setProjects(p || [])
     setTimeline(t || [])
+    setMeetings(m || [])
     setLoading(false)
+  }
+
+  async function createMeeting(e: any) {
+    e.preventDefault()
+    if (!meetingForm.customerId || !meetingForm.title || !meetingForm.meetingDate || !meetingForm.meetingTime) return
+    await fetch('/api/meetings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(meetingForm) })
+    setMeetingForm({ customerId: '', title: '', description: '', meetingDate: '', meetingTime: '', duration: '60', meetingType: 'coffee', location: '' })
+    setShowMeetingForm(false)
+    loadData()
+  }
+
+  async function deleteMeeting(id: string) {
+    if (!confirm(t('admin.deleteMeetingConfirm', 'Slet aftale?'))) return
+    await fetch(`/api/meetings/${id}`, { method: 'DELETE' })
+    setSelectedDate(null)
+    loadData()
   }
 
   function prevMonth() {
@@ -154,8 +187,8 @@ export default function AdminPanel() {
 
   const totalUnread = messages.filter(m => m.sender === 'customer' && !m.readByAdmin).length
 
-  // Calendar events: project deadlines + timeline milestones, color-coded
-  type CalendarEvent = { id: string, date: string, kind: 'deadline' | 'milestone', title: string, projectId: string, customer: any, color: string }
+  // Calendar events: project deadlines + timeline milestones + meetings, color-coded
+  type CalendarEvent = { id: string, date: string, kind: 'deadline' | 'milestone' | 'meeting', title: string, projectId?: string, meeting?: any, customer: any, color: string }
   const calendarEvents: CalendarEvent[] = [
     ...projects.filter((p: any) => p.endDate).map((p: any) => {
       const customer = customers.find((c: any) => c.id === p.customerId)
@@ -175,6 +208,11 @@ export default function AdminPanel() {
       const urgent = !done && days !== null && days >= 0 && days <= 7
       const color = done ? '#4ade80' : overdue ? '#ff6666' : urgent ? '#fbbf24' : '#fff'
       return { id: `milestone-${t.id}`, date: t.dueDate.slice(0, 10), kind: 'milestone' as const, title: t.title, projectId: t.projectId, customer, color }
+    }),
+    ...meetings.filter((m: any) => m.meetingDate).map((m: any) => {
+      const customer = customers.find((c: any) => c.id === m.customerId)
+      const color = meetingTypeInfo(m.meetingType).color
+      return { id: `meeting-${m.id}`, date: m.meetingDate.slice(0, 10), kind: 'meeting' as const, title: m.title, meeting: m, customer, color }
     })
   ]
   const eventsByDate: Record<string, CalendarEvent[]> = {}
@@ -222,6 +260,10 @@ export default function AdminPanel() {
 
         {view === 'overview' && (
           <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '30px' }}>
+              <button onClick={() => setShowMeetingForm(true)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #fff', color: '#fff', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 'bold' }}>+ {t('admin.createMeetingBtn', 'Opret Aftale')}</button>
+            </div>
+
             {/* Stats */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginBottom: '50px' }}>
               <div style={{ padding: '25px', border: '1px solid #333' }}>
@@ -324,7 +366,9 @@ export default function AdminPanel() {
                   </div>
                   <div style={{ marginBottom: '20px' }}>
                     <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.logoUrl', 'Logo URL')}</label>
-                    <input type="url" value={customerForm.logoUrl} onChange={(e) => setCustomerForm({ ...customerForm, logoUrl: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} />
+                    <input type="url" value={customerForm.logoUrl} onChange={(e) => setCustomerForm({ ...customerForm, logoUrl: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none', marginBottom: '15px' }} />
+                    <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{t('upload.orLabel', 'eller')}</p>
+                    <FileUploader value={customerForm.logoUrl} onUploaded={(url) => setCustomerForm({ ...customerForm, logoUrl: url })} />
                   </div>
                   <div style={{ marginBottom: '30px' }}>
                     <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.pinLabel', 'PIN (4 cifre)')}</label>
@@ -389,7 +433,9 @@ export default function AdminPanel() {
                   </div>
                   <div style={{ marginBottom: '30px' }}>
                     <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.logoUrl', 'Logo URL')}</label>
-                    <input type="url" value={projectForm.logoUrl} onChange={(e) => setProjectForm({ ...projectForm, logoUrl: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} />
+                    <input type="url" value={projectForm.logoUrl} onChange={(e) => setProjectForm({ ...projectForm, logoUrl: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none', marginBottom: '15px' }} />
+                    <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{t('upload.orLabel', 'eller')}</p>
+                    <FileUploader value={projectForm.logoUrl} onUploaded={(url) => setProjectForm({ ...projectForm, logoUrl: url })} />
                   </div>
                   <div style={{ display: 'flex', gap: '15px' }}>
                     <button type="submit" style={{ padding: '12px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.create', 'Opret')}</button>
@@ -522,6 +568,14 @@ export default function AdminPanel() {
                 </div>
               ))}
             </div>
+            <div style={{ display: 'flex', gap: '20px', marginBottom: '25px', flexWrap: 'wrap' }}>
+              {MEETING_TYPES.map(mt => (
+                <div key={mt.key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: mt.color, display: 'inline-block' }} />
+                  <span style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t(mt.labelKey, mt.label)}</span>
+                </div>
+              ))}
+            </div>
 
             {/* Weekday header */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', marginBottom: '1px' }}>
@@ -564,24 +618,101 @@ export default function AdminPanel() {
                   {new Date(selectedDate + 'T00:00:00').toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {(eventsByDate[selectedDate] || []).map(ev => (
-                    <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '14px', border: `1px solid ${ev.color === '#fff' ? '#333' : ev.color}` }}>
-                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', border: `2px solid ${ev.color}`, overflow: 'hidden', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {ev.customer?.logoUrl ? <img src={ev.customer.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '13px', color: '#999' }}>{ev.customer?.name?.charAt(0) || '?'}</span>}
+                  {(eventsByDate[selectedDate] || []).map(ev => {
+                    const kindLabel = ev.kind === 'deadline' ? t('admin.calendarDeadlineKind', 'Deadline') : ev.kind === 'meeting' ? t('admin.calendarMeetingKind', 'Aftale') : t('admin.calendarMilestoneKind', 'Milestone')
+                    return (
+                      <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '14px', border: `1px solid ${ev.color === '#fff' ? '#333' : ev.color}` }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', border: `2px solid ${ev.color}`, overflow: 'hidden', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {ev.customer?.logoUrl ? <img src={ev.customer.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '13px', color: '#999' }}>{ev.customer?.name?.charAt(0) || '?'}</span>}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontSize: '9px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>{ev.customer?.name || t('admin.noCustomer', 'Ingen kunde')} · {kindLabel}</p>
+                          <p style={{ fontSize: '13px', fontWeight: 'bold', color: ev.color }}>{ev.title}</p>
+                          {ev.kind === 'meeting' && ev.meeting && (
+                            <p style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
+                              {ev.meeting.meetingTime} · {ev.meeting.duration || 60} min{ev.meeting.location ? ` · ${ev.meeting.location}` : ''}
+                            </p>
+                          )}
+                        </div>
+                        {ev.kind === 'meeting' && ev.meeting ? (
+                          <button onClick={() => deleteMeeting(ev.meeting.id)} style={{ padding: '8px 14px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', cursor: 'pointer', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.delete', 'Slet')}</button>
+                        ) : (
+                          <Link href={`/project/${ev.projectId}`} style={{ padding: '8px 14px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', textDecoration: 'none', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.open', 'Åbn')}</Link>
+                        )}
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ fontSize: '9px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>{ev.customer?.name || t('admin.noCustomer', 'Ingen kunde')} · {ev.kind === 'deadline' ? t('admin.calendarDeadlineKind', 'Deadline') : t('admin.calendarMilestoneKind', 'Milestone')}</p>
-                        <p style={{ fontSize: '13px', fontWeight: 'bold', color: ev.color }}>{ev.title}</p>
-                      </div>
-                      <Link href={`/project/${ev.projectId}`} style={{ padding: '8px 14px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', textDecoration: 'none', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.open', 'Åbn')}</Link>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}
           </div>
         )}
       </div>
+
+      {showMeetingForm && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={() => setShowMeetingForm(false)}>
+          <form onSubmit={createMeeting} onClick={(e) => e.stopPropagation()} style={{ backgroundColor: '#000', border: '1px solid #333', padding: '40px', maxWidth: '480px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '30px' }}>{t('admin.meetingModalTitle', 'Ny Aftale')}</h2>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.customerLabel', 'Kunde')}</label>
+              <select value={meetingForm.customerId} onChange={(e) => setMeetingForm({ ...meetingForm, customerId: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} required>
+                <option value="" style={{ backgroundColor: '#000' }}>{t('admin.selectCustomer', 'Vælg kunde')}</option>
+                {customers.map((c: any) => <option key={c.id} value={c.id} style={{ backgroundColor: '#000' }}>{c.name}</option>)}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('project.titlePlaceholder', 'Titel')}</label>
+              <input type="text" value={meetingForm.title} onChange={(e) => setMeetingForm({ ...meetingForm, title: e.target.value })} placeholder="Kaffemøde" style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} required />
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.description', 'Beskrivelse')}</label>
+              <textarea value={meetingForm.description} onChange={(e) => setMeetingForm({ ...meetingForm, description: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none', minHeight: '60px', fontFamily: 'inherit', resize: 'none' }} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+              <div>
+                <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.meetingDateLabel', 'Dato')}</label>
+                <input type="date" value={meetingForm.meetingDate} onChange={(e) => setMeetingForm({ ...meetingForm, meetingDate: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} required />
+              </div>
+              <div>
+                <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.meetingTimeLabel', 'Tidspunkt')}</label>
+                <input type="time" value={meetingForm.meetingTime} onChange={(e) => setMeetingForm({ ...meetingForm, meetingTime: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} required />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+              <div>
+                <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.meetingDurationLabel', 'Varighed (minutter)')}</label>
+                <input type="number" min={5} step={5} value={meetingForm.duration} onChange={(e) => setMeetingForm({ ...meetingForm, duration: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.meetingTypeLabel', 'Type')}</label>
+                <select value={meetingForm.meetingType} onChange={(e) => setMeetingForm({ ...meetingForm, meetingType: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }}>
+                  {MEETING_TYPES.map(mt => <option key={mt.key} value={mt.key} style={{ backgroundColor: '#000' }}>{t(mt.labelKey, mt.label)}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: meetingTypeInfo(meetingForm.meetingType).color, display: 'inline-block', flexShrink: 0 }} />
+              <span style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t(meetingTypeInfo(meetingForm.meetingType).labelKey, meetingTypeInfo(meetingForm.meetingType).label)}</span>
+            </div>
+
+            <div style={{ marginBottom: '30px' }}>
+              <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.meetingLocationLabel', 'Sted')}</label>
+              <input type="text" value={meetingForm.location} onChange={(e) => setMeetingForm({ ...meetingForm, location: e.target.value })} placeholder="Café Norden, Nørrebro" style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} />
+            </div>
+
+            <div style={{ display: 'flex', gap: '15px' }}>
+              <button type="submit" style={{ padding: '12px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.create', 'Opret')}</button>
+              <button type="button" onClick={() => setShowMeetingForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.cancel', 'Annuller')}</button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   )
 }

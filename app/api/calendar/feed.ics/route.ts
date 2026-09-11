@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { initDB, getProjects, getAllCustomers, getAllTimelineItems } from '@/lib/db-postgres'
+import { initDB, getProjects, getAllCustomers, getAllTimelineItems, getMeetings } from '@/lib/db-postgres'
 
 function statusLabel(status: string) {
   const map: Record<string, string> = {
@@ -10,6 +10,16 @@ function statusLabel(status: string) {
     'done': 'Done'
   }
   return map[status] || 'New'
+}
+
+function meetingTypeLabel(meetingType: string) {
+  const map: Record<string, string> = {
+    coffee: 'Kaffemøde',
+    production: 'Produktion',
+    review: 'Review',
+    other: 'Andet'
+  }
+  return map[meetingType] || 'Andet'
 }
 
 // Escape text per RFC5545 (backslash first, then the rest)
@@ -68,14 +78,55 @@ function buildEventLines(opts: { uid: string, dateStr: string, summary: string, 
   ]
 }
 
+// 'YYYY-MM-DD' + 'HH:MM' -> 'YYYYMMDDTHHMMSS' (floating local time, no TZID)
+function toICSDateTime(dateStr: string, timeStr: string): string {
+  const datePart = dateStr.replace(/-/g, '').slice(0, 8)
+  const timePart = timeStr.replace(':', '').padEnd(4, '0').slice(0, 4)
+  return `${datePart}T${timePart}00`
+}
+
+function addMinutesToICSDateTime(icsDateTime: string, minutes: number): string {
+  const y = parseInt(icsDateTime.slice(0, 4), 10)
+  const mo = parseInt(icsDateTime.slice(4, 6), 10) - 1
+  const d = parseInt(icsDateTime.slice(6, 8), 10)
+  const h = parseInt(icsDateTime.slice(9, 11), 10)
+  const mi = parseInt(icsDateTime.slice(11, 13), 10)
+  const date = new Date(y, mo, d, h, mi)
+  date.setMinutes(date.getMinutes() + minutes)
+  const yy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  const hh = String(date.getHours()).padStart(2, '0')
+  const mmin = String(date.getMinutes()).padStart(2, '0')
+  return `${yy}${mm}${dd}T${hh}${mmin}00`
+}
+
+function buildMeetingEventLines(opts: { uid: string, dateStr: string, timeStr: string, duration: number, summary: string, description: string, location?: string, stamp: string }): string[] {
+  const dtStart = toICSDateTime(opts.dateStr, opts.timeStr)
+  const dtEnd = addMinutesToICSDateTime(dtStart, opts.duration)
+  const lines = [
+    'BEGIN:VEVENT',
+    `UID:${opts.uid}`,
+    `DTSTAMP:${opts.stamp}`,
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
+    `SUMMARY:${escapeICSText(opts.summary)}`,
+    `DESCRIPTION:${escapeICSText(opts.description)}`
+  ]
+  if (opts.location) lines.push(`LOCATION:${escapeICSText(opts.location)}`)
+  lines.push('END:VEVENT')
+  return lines
+}
+
 export async function GET(request: NextRequest) {
   try {
     await initDB()
-    const [projects, customers, timeline] = await Promise.all([
+    const [projects, customers, timeline, meetings] = await Promise.all([
       getProjects(),
       getAllCustomers(),
-      getAllTimelineItems()
-    ]) as [any[], any[], any[]]
+      getAllTimelineItems(),
+      getMeetings()
+    ]) as [any[], any[], any[], any[]]
 
     const origin = request.nextUrl.origin
     const stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
@@ -113,6 +164,22 @@ export async function GET(request: NextRequest) {
       }))
     }
 
+    for (const m of meetings) {
+      if (!m.meetingDate || !m.meetingTime) continue
+      const customer = customers.find(c => c.id === m.customerId)
+      const customerName = customer?.name || 'Ukendt kunde'
+      eventLines.push(...buildMeetingEventLines({
+        uid: `meeting-${m.id}@chromevaultstudios`,
+        dateStr: m.meetingDate,
+        timeStr: m.meetingTime,
+        duration: m.duration || 60,
+        summary: `${m.title} - ${customerName}`,
+        description: `${m.description || ''}\nType: ${meetingTypeLabel(m.meetingType)}`.trim(),
+        location: m.location || undefined,
+        stamp
+      }))
+    }
+
     const allLines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
@@ -120,7 +187,7 @@ export async function GET(request: NextRequest) {
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
       'X-WR-CALNAME:Chrome Vault Studios',
-      'X-WR-CALDESC:Deadlines og milestones fra Chrome Vault Studios',
+      'X-WR-CALDESC:Deadlines\\, milestones og aftaler fra Chrome Vault Studios',
       ...eventLines,
       'END:VCALENDAR'
     ]

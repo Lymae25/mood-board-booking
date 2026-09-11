@@ -10,6 +10,9 @@
 /.next/
 /out/
 
+# user-uploaded files (written at runtime, not part of the repo)
+/public/uploads/
+
 # production
 /build
 
