@@ -5,6 +5,7 @@ import ChatWidget from './ChatWidget'
 import LanguageSwitcher from './LanguageSwitcher'
 import FileUploader from './FileUploader'
 import { useTranslation } from '@/lib/useTranslation'
+import { resolveUploadUrl } from '@/lib/resolveUploadUrl'
 
 export default function ProjectDetail({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<any>(null)
@@ -177,7 +178,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
                   <div style={{ border: '1px solid #333', padding: '30px' }}>
                     <h2 style={{ fontSize: '20px', fontWeight: '900', marginBottom: '20px', textTransform: 'uppercase' }}>{selectedScene.title}</h2>
-                    {selectedScene.imageUrl && <img src={selectedScene.imageUrl} alt="" style={{ width: '100%', marginBottom: '20px' }} />}
+                    {selectedScene.imageUrl && <img src={resolveUploadUrl(selectedScene.imageUrl)} alt="" style={{ width: '100%', marginBottom: '20px' }} />}
                     <p style={{ color: '#ccc', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{parsed.text}</p>
                     {parsed.refUrl && (
                       <div style={{ marginTop: '20px', padding: '20px', border: '1px solid #333' }}>
@@ -228,7 +229,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
               {ideas.map((i: any) => (
                 <div key={i.id} style={{ border: '1px solid #333', padding: '20px' }}>
-                  {i.imageUrl && <img src={i.imageUrl} alt="" style={{ width: '100%', marginBottom: '15px' }} />}
+                  {i.imageUrl && <img src={resolveUploadUrl(i.imageUrl)} alt="" style={{ width: '100%', marginBottom: '15px' }} />}
                   <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '10px', textTransform: 'uppercase' }}>{i.title}</h3>
                   {i.description && <p style={{ color: '#ccc', fontSize: '13px', marginBottom: '10px', fontStyle: 'italic' }}>"{i.description}"</p>}
                   {i.category && (i.category.startsWith('http') ? <a href={i.category} target="_blank" style={{ color: '#66aaff', fontSize: '12px', wordBreak: 'break-all' }}>{i.category}</a> : <span style={{ color: '#666', fontSize: '11px' }}>{i.category}</span>)}

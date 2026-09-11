@@ -7,6 +7,7 @@ import ChatWidget from './ChatWidget'
 import LanguageSwitcher from './LanguageSwitcher'
 import FileUploader from './FileUploader'
 import { useTranslation } from '@/lib/useTranslation'
+import { resolveUploadUrl } from '@/lib/resolveUploadUrl'
 
 export default function CustomerDashboard({ customerId }: { customerId: string }) {
   const [projects, setProjects] = useState<any[]>([])
@@ -76,7 +77,7 @@ export default function CustomerDashboard({ customerId }: { customerId: string }
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         <div style={{ marginBottom: '60px', borderBottom: '1px solid #333', paddingBottom: '40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            {customer?.logoUrl && <img src={customer.logoUrl} alt={customer.name} style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #333' }} />}
+            {customer?.logoUrl && <img src={resolveUploadUrl(customer.logoUrl)} alt={customer.name} style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #333' }} />}
             <div>
               <h1 style={{ fontSize: '36px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase' }}>{customer?.name}</h1>
               <p style={{ fontSize: '12px', color: '#999', letterSpacing: '1px', textTransform: 'uppercase', marginTop: '5px' }}>{t('customer.myProjects', 'Mine Projekter')}</p>
@@ -148,7 +149,7 @@ export default function CustomerDashboard({ customerId }: { customerId: string }
             return (
               <div key={project.id} style={{ backgroundColor: 'transparent', border: urgent ? '1px solid #ff6666' : '1px solid #333', transition: 'all 0.3s', position: 'relative' }}>
                 <Link href={`/project/${project.id}?customer=1`} style={{ textDecoration: 'none', display: 'block' }}>
-                  {project.logoUrl && <img src={project.logoUrl} alt={project.name} style={{ width: '100%', height: '160px', objectFit: 'cover' }} />}
+                  {project.logoUrl && <img src={resolveUploadUrl(project.logoUrl)} alt={project.name} style={{ width: '100%', height: '160px', objectFit: 'cover' }} />}
                   <div style={{ padding: '30px' }}>
                     <h3 style={{ fontSize: '16px', fontWeight: '900', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px', color: '#fff' }}>{project.name}</h3>
                     <p style={{ color: '#999', fontSize: '12px', marginBottom: '20px', lineHeight: '1.6' }}>{project.description}</p>

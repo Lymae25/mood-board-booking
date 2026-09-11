@@ -7,6 +7,7 @@ import LanguageSwitcher from './LanguageSwitcher'
 import FileUploader from './FileUploader'
 import TypingIndicator from './TypingIndicator'
 import { useTranslation } from '@/lib/useTranslation'
+import { resolveUploadUrl } from '@/lib/resolveUploadUrl'
 
 const TYPING_THROTTLE_MS = 2000
 const TYPING_POLL_MS = 2000
@@ -360,7 +361,7 @@ export default function AdminPanel() {
                     return (
                       <div key={p.id} style={{ padding: '20px', border: `1px solid ${overdue ? '#ff6666' : urgent ? '#fbbf24' : '#333'}`, display: 'grid', gridTemplateColumns: '60px 1fr auto auto auto', gap: '20px', alignItems: 'center' }}>
                         {customer?.logoUrl ? (
-                          <img src={customer.logoUrl} alt={customer.name} style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #333' }} />
+                          <img src={resolveUploadUrl(customer.logoUrl)} alt={customer.name} style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #333' }} />
                         ) : (
                           <div style={{ width: '50px', height: '50px', borderRadius: '50%', border: '1px solid #333', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <span style={{ fontSize: '18px', color: '#666' }}>{customer?.name.charAt(0) || '?'}</span>
@@ -433,7 +434,7 @@ export default function AdminPanel() {
                 {customers.map((c: any) => (
                   <div key={c.id} onClick={() => router.push(`/customer/${c.id}`)} style={{ border: '1px solid #333', padding: '20px', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'all 0.2s' }} onMouseOver={(e) => { e.currentTarget.style.borderColor = '#fff' }} onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333' }}>
                     <div style={{ width: '60px', height: '60px', borderRadius: '50%', border: '1px solid #333', overflow: 'hidden', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      {c.logoUrl ? <img src={c.logoUrl} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '20px', color: '#666' }}>{c.name.charAt(0)}</span>}
+                      {c.logoUrl ? <img src={resolveUploadUrl(c.logoUrl)} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '20px', color: '#666' }}>{c.name.charAt(0)}</span>}
                     </div>
                     <div style={{ flex: 1 }}>
                       <h3 style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '5px' }}>{c.name}</h3>
@@ -497,7 +498,7 @@ export default function AdminPanel() {
                   const customer = customers.find((c: any) => c.id === p.customerId)
                   return (
                     <div key={p.id} style={{ border: '1px solid #333' }}>
-                      {p.logoUrl && <img src={p.logoUrl} alt={p.name} style={{ width: '100%', height: '120px', objectFit: 'cover' }} />}
+                      {p.logoUrl && <img src={resolveUploadUrl(p.logoUrl)} alt={p.name} style={{ width: '100%', height: '120px', objectFit: 'cover' }} />}
                       <div style={{ padding: '20px' }}>
                         <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{customer?.name || t('admin.noCustomer', 'Ingen kunde')}</p>
                         <h3 style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{p.name}</h3>
@@ -534,7 +535,7 @@ export default function AdminPanel() {
                   return (
                     <div key={c.id} onClick={() => openConversation(c.id)} style={{ padding: '16px 20px', borderBottom: '1px solid #222', cursor: 'pointer', backgroundColor: active ? '#111' : 'transparent', display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', border: '1px solid #333', backgroundColor: '#111', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {c.logoUrl ? <img src={c.logoUrl} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '13px', color: '#666' }}>{c.name.charAt(0)}</span>}
+                        {c.logoUrl ? <img src={resolveUploadUrl(c.logoUrl)} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '13px', color: '#666' }}>{c.name.charAt(0)}</span>}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>{c.name}</p>
@@ -570,8 +571,8 @@ export default function AdminPanel() {
                             </p>
                           )}
                           {m.imageUrl && (
-                            <a href={m.imageUrl} target="_blank" rel="noreferrer" style={{ display: 'block', marginBottom: m.content ? '6px' : 0 }}>
-                              <img src={m.imageUrl} alt="" style={{ maxWidth: '300px', maxHeight: '300px', display: 'block', border: m.sender === 'admin' ? 'none' : '1px solid #333' }} />
+                            <a href={resolveUploadUrl(m.imageUrl)} target="_blank" rel="noreferrer" style={{ display: 'block', marginBottom: m.content ? '6px' : 0 }}>
+                              <img src={resolveUploadUrl(m.imageUrl)} alt="" style={{ maxWidth: '300px', maxHeight: '300px', display: 'block', border: m.sender === 'admin' ? 'none' : '1px solid #333' }} />
                             </a>
                           )}
                           {m.content && (
@@ -591,7 +592,7 @@ export default function AdminPanel() {
                             <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('upload.uploadingLabel', 'Uploader...')}</p>
                           ) : (
                             <div style={{ position: 'relative', display: 'inline-block' }}>
-                              <img src={replyImage} alt="" style={{ maxHeight: '70px', maxWidth: '110px', display: 'block', border: '1px solid #333' }} />
+                              <img src={resolveUploadUrl(replyImage)} alt="" style={{ maxHeight: '70px', maxWidth: '110px', display: 'block', border: '1px solid #333' }} />
                               <button onClick={() => setReplyImage('')} style={{ position: 'absolute', top: '-8px', right: '-8px', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#fff', color: '#000', border: 'none', cursor: 'pointer', fontSize: '12px', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>×</button>
                             </div>
                           )}
@@ -673,7 +674,7 @@ export default function AdminPanel() {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
                       {dayEvents.slice(0, 4).map(ev => (
                         <div key={ev.id} title={ev.title} style={{ width: '16px', height: '16px', borderRadius: '50%', border: `2px solid ${ev.color}`, overflow: 'hidden', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {ev.customer?.logoUrl ? <img src={ev.customer.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '7px', color: '#999' }}>{ev.customer?.name?.charAt(0) || '?'}</span>}
+                          {ev.customer?.logoUrl ? <img src={resolveUploadUrl(ev.customer.logoUrl)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '7px', color: '#999' }}>{ev.customer?.name?.charAt(0) || '?'}</span>}
                         </div>
                       ))}
                       {dayEvents.length > 4 && <span style={{ fontSize: '9px', color: '#999' }}>+{dayEvents.length - 4}</span>}
@@ -695,7 +696,7 @@ export default function AdminPanel() {
                     return (
                       <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '14px', border: `1px solid ${ev.color === '#fff' ? '#333' : ev.color}` }}>
                         <div style={{ width: '36px', height: '36px', borderRadius: '50%', border: `2px solid ${ev.color}`, overflow: 'hidden', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {ev.customer?.logoUrl ? <img src={ev.customer.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '13px', color: '#999' }}>{ev.customer?.name?.charAt(0) || '?'}</span>}
+                          {ev.customer?.logoUrl ? <img src={resolveUploadUrl(ev.customer.logoUrl)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '13px', color: '#999' }}>{ev.customer?.name?.charAt(0) || '?'}</span>}
                         </div>
                         <div style={{ flex: 1 }}>
                           <p style={{ fontSize: '9px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>{ev.customer?.name || t('admin.noCustomer', 'Ingen kunde')} · {kindLabel}</p>

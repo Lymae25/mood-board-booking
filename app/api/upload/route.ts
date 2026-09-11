@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer())
     await writeFile(path.join(uploadsDir, uniqueName), buffer)
 
-    return NextResponse.json({ url: `/uploads/${uniqueName}` }, { status: 201 })
+    return NextResponse.json({ url: `/api/uploads/${uniqueName}` }, { status: 201 })
   } catch (error) {
     console.error('POST /api/upload error:', error)
     return NextResponse.json({ error: 'server_error' }, { status: 500 })

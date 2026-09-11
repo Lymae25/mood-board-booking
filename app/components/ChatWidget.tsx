@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from '@/lib/useTranslation'
+import { resolveUploadUrl } from '@/lib/resolveUploadUrl'
 import TypingIndicator from './TypingIndicator'
 
 interface ChatScene { id: string; title: string }
@@ -128,8 +129,8 @@ export default function ChatWidget({ customerId, projectName, scenes }: { custom
                   </p>
                 )}
                 {m.imageUrl && (
-                  <a href={m.imageUrl} target="_blank" rel="noreferrer" style={{ display: 'block', marginBottom: m.content ? '6px' : 0 }}>
-                    <img src={m.imageUrl} alt="" style={{ maxWidth: '300px', maxHeight: '300px', display: 'block', border: m.sender === 'customer' ? 'none' : '1px solid #333' }} />
+                  <a href={resolveUploadUrl(m.imageUrl)} target="_blank" rel="noreferrer" style={{ display: 'block', marginBottom: m.content ? '6px' : 0 }}>
+                    <img src={resolveUploadUrl(m.imageUrl)} alt="" style={{ maxWidth: '300px', maxHeight: '300px', display: 'block', border: m.sender === 'customer' ? 'none' : '1px solid #333' }} />
                   </a>
                 )}
                 {m.content && (
@@ -156,7 +157,7 @@ export default function ChatWidget({ customerId, projectName, scenes }: { custom
                   <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('upload.uploadingLabel', 'Uploader...')}</p>
                 ) : (
                   <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <img src={attachedImage} alt="" style={{ maxHeight: '70px', maxWidth: '110px', display: 'block', border: '1px solid #333' }} />
+                    <img src={resolveUploadUrl(attachedImage)} alt="" style={{ maxHeight: '70px', maxWidth: '110px', display: 'block', border: '1px solid #333' }} />
                     <button onClick={() => setAttachedImage('')} style={{ position: 'absolute', top: '-8px', right: '-8px', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#fff', color: '#000', border: 'none', cursor: 'pointer', fontSize: '12px', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>×</button>
                   </div>
                 )}

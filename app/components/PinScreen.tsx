@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/lib/useTranslation'
+import { resolveUploadUrl } from '@/lib/resolveUploadUrl'
 import LanguageSwitcher from './LanguageSwitcher'
 
 export default function PinScreen({ customerId }: { customerId: string }) {
@@ -57,7 +58,7 @@ export default function PinScreen({ customerId }: { customerId: string }) {
       {customer && (
         <>
           <div style={{ width: '160px', height: '160px', borderRadius: '50%', border: '2px solid #333', overflow: 'hidden', marginBottom: '30px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {customer.logoUrl ? <img src={customer.logoUrl} alt={customer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '48px', color: '#666' }}>{customer.name.charAt(0)}</span>}
+            {customer.logoUrl ? <img src={resolveUploadUrl(customer.logoUrl)} alt={customer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '48px', color: '#666' }}>{customer.name.charAt(0)}</span>}
           </div>
           <h2 style={{ fontSize: '24px', fontWeight: '900', letterSpacing: '2px', marginBottom: '10px', textTransform: 'uppercase' }}>{customer.name}</h2>
         </>

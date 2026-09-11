@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useState } from 'react'
 import { useTranslation } from '@/lib/useTranslation'
+import { resolveUploadUrl } from '@/lib/resolveUploadUrl'
 
 const ERROR_KEYS: Record<string, string> = {
   no_file: 'upload.errorNoFile',
@@ -76,9 +77,9 @@ export default function FileUploader({ value, onUploaded, accept = 'image/*,vide
           </div>
         ) : value ? (
           isVideo ? (
-            <video src={value} style={{ maxWidth: '100%', maxHeight: '200px' }} controls />
+            <video src={resolveUploadUrl(value)} style={{ maxWidth: '100%', maxHeight: '200px' }} controls />
           ) : (
-            <img src={value} alt="" style={{ maxWidth: '100%', maxHeight: '200px' }} />
+            <img src={resolveUploadUrl(value)} alt="" style={{ maxWidth: '100%', maxHeight: '200px' }} />
           )
         ) : (
           <span style={{ color: '#666', fontSize: '12px' }}>{t('upload.dragDrop', 'Drag & drop fil eller klik')}</span>

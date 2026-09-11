@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/lib/useTranslation'
+import { resolveUploadUrl } from '@/lib/resolveUploadUrl'
 import LanguageSwitcher from './LanguageSwitcher'
 
 export default function CustomerSelector() {
@@ -174,7 +175,7 @@ export default function CustomerSelector() {
                   willChange: 'transform'
                 }}
               >
-                {c.logoUrl ? <img src={c.logoUrl} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '48px', color: '#666' }}>{c.name.charAt(0)}</span>}
+                {c.logoUrl ? <img src={resolveUploadUrl(c.logoUrl)} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '48px', color: '#666' }}>{c.name.charAt(0)}</span>}
               </div>
               <p style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', opacity: isFalling ? 0 : 1, transition: 'opacity 0.4s' }}>{c.name}</p>
             </div>
