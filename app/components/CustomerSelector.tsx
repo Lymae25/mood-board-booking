@@ -10,7 +10,7 @@ export default function CustomerSelector() {
   const [error, setError] = useState('')
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [lastHoveredId, setLastHoveredId] = useState<string | null>(null)
-  const [panicMode, setPanicMode] = useState(false)
+  const [panicPhase, setPanicPhase] = useState<'none' | 'panic' | 'slowing1' | 'slowing2' | 'slowing3'>('none')
   const router = useRouter()
 
   useEffect(() => {
@@ -20,11 +20,14 @@ export default function CustomerSelector() {
   useEffect(() => {
     if (hoveredId) {
       setLastHoveredId(hoveredId)
-      setPanicMode(false)
+      setPanicPhase('none')
     } else if (lastHoveredId) {
-      setPanicMode(true)
-      const t = setTimeout(() => { setPanicMode(false); setLastHoveredId(null) }, 3000)
-      return () => clearTimeout(t)
+      setPanicPhase('panic')
+      const t1 = setTimeout(() => setPanicPhase('slowing1'), 1500)
+      const t2 = setTimeout(() => setPanicPhase('slowing2'), 3000)
+      const t3 = setTimeout(() => setPanicPhase('slowing3'), 4500)
+      const t4 = setTimeout(() => { setPanicPhase('none'); setLastHoveredId(null) }, 6500)
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4) }
     }
   }, [hoveredId])
 
@@ -37,11 +40,8 @@ export default function CustomerSelector() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
       <style>{`
-        @keyframes spin-slow-1 { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes spin-slow-2 { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
-        @keyframes spin-medium { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes spin-panic-1 { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes spin-panic-2 { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
+        @keyframes spin-cw { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin-ccw { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
         @keyframes float-1 { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
         @keyframes float-2 { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-12px); } }
         @keyframes float-3 { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-6px); } }
@@ -63,20 +63,55 @@ export default function CustomerSelector() {
         .circle-wrap-3 { animation: float-1 4.5s ease-in-out infinite; }
         .circle-wrap-4 { animation: float-2 5.5s ease-in-out infinite; }
         .circle-wrap-5 { animation: float-3 4s ease-in-out infinite; }
-        .circle-spin-0 { animation: spin-slow-1 20s linear infinite; }
-        .circle-spin-1 { animation: spin-slow-2 25s linear infinite; }
-        .circle-spin-2 { animation: spin-medium 18s linear infinite; }
-        .circle-spin-3 { animation: spin-slow-1 30s linear infinite; }
-        .circle-spin-4 { animation: spin-slow-2 22s linear infinite; }
-        .circle-spin-5 { animation: spin-medium 28s linear infinite; }
+
+        /* Normal rotation speeds (per index % 6) */
+        .spin-normal-0 { animation: spin-cw 20s linear infinite; }
+        .spin-normal-1 { animation: spin-ccw 25s linear infinite; }
+        .spin-normal-2 { animation: spin-cw 18s linear infinite; }
+        .spin-normal-3 { animation: spin-cw 30s linear infinite; }
+        .spin-normal-4 { animation: spin-ccw 22s linear infinite; }
+        .spin-normal-5 { animation: spin-cw 28s linear infinite; }
+
+        /* Panic speeds - super fast */
+        .spin-panic-0 { animation: spin-cw 0.4s linear infinite !important; }
+        .spin-panic-1 { animation: spin-ccw 0.5s linear infinite !important; }
+        .spin-panic-2 { animation: spin-cw 0.35s linear infinite !important; }
+        .spin-panic-3 { animation: spin-cw 0.45s linear infinite !important; }
+        .spin-panic-4 { animation: spin-ccw 0.4s linear infinite !important; }
+        .spin-panic-5 { animation: spin-cw 0.5s linear infinite !important; }
+
+        /* Slowing phase 1 - medium fast */
+        .spin-slow1-0 { animation: spin-cw 2s linear infinite !important; }
+        .spin-slow1-1 { animation: spin-ccw 2.5s linear infinite !important; }
+        .spin-slow1-2 { animation: spin-cw 1.8s linear infinite !important; }
+        .spin-slow1-3 { animation: spin-cw 2.2s linear infinite !important; }
+        .spin-slow1-4 { animation: spin-ccw 2s linear infinite !important; }
+        .spin-slow1-5 { animation: spin-cw 2.5s linear infinite !important; }
+
+        /* Slowing phase 2 - medium */
+        .spin-slow2-0 { animation: spin-cw 6s linear infinite !important; }
+        .spin-slow2-1 { animation: spin-ccw 7s linear infinite !important; }
+        .spin-slow2-2 { animation: spin-cw 5.5s linear infinite !important; }
+        .spin-slow2-3 { animation: spin-cw 8s linear infinite !important; }
+        .spin-slow2-4 { animation: spin-ccw 6.5s linear infinite !important; }
+        .spin-slow2-5 { animation: spin-cw 7.5s linear infinite !important; }
+
+        /* Slowing phase 3 - almost normal */
+        .spin-slow3-0 { animation: spin-cw 12s linear infinite !important; }
+        .spin-slow3-1 { animation: spin-ccw 14s linear infinite !important; }
+        .spin-slow3-2 { animation: spin-cw 11s linear infinite !important; }
+        .spin-slow3-3 { animation: spin-cw 16s linear infinite !important; }
+        .spin-slow3-4 { animation: spin-ccw 13s linear infinite !important; }
+        .spin-slow3-5 { animation: spin-cw 15s linear infinite !important; }
+
         .is-nervous { animation: nervous-shake 0.25s ease-in-out infinite !important; }
         .is-nervous .circle-spin { animation-play-state: paused !important; }
-        .is-panic-0 .circle-spin { animation: spin-panic-1 0.4s linear infinite !important; }
-        .is-panic-1 .circle-spin { animation: spin-panic-2 0.5s linear infinite !important; }
-        .is-panic-2 .circle-spin { animation: spin-panic-1 0.35s linear infinite !important; }
-        .is-panic-3 .circle-spin { animation: spin-panic-2 0.45s linear infinite !important; }
-        .is-panic-4 .circle-spin { animation: spin-panic-1 0.4s linear infinite !important; }
-        .is-panic-5 .circle-spin { animation: spin-panic-2 0.5s linear infinite !important; }
+
+        .circle-spin { transition: none; }
+        .is-panic .circle-spin,
+        .is-slow1 .circle-spin,
+        .is-slow2 .circle-spin,
+        .is-slow3 .circle-spin { transition: none; }
       `}</style>
 
       <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', marginBottom: '20px', textTransform: 'uppercase' }}>MOOD BOARD</h1>
@@ -85,12 +120,21 @@ export default function CustomerSelector() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '40px', maxWidth: '1200px', width: '100%', marginBottom: '80px' }}>
         {customers.map((c: any, idx: number) => {
           const isNervous = hoveredId === c.id
-          const isPanicking = panicMode && c.id !== lastHoveredId
+          const affectedByPanic = panicPhase !== 'none' && c.id !== lastHoveredId
+          
+          let spinClass = `spin-normal-${idx % 6}`
+          if (affectedByPanic) {
+            if (panicPhase === 'panic') spinClass = `spin-panic-${idx % 6}`
+            else if (panicPhase === 'slowing1') spinClass = `spin-slow1-${idx % 6}`
+            else if (panicPhase === 'slowing2') spinClass = `spin-slow2-${idx % 6}`
+            else if (panicPhase === 'slowing3') spinClass = `spin-slow3-${idx % 6}`
+          }
+
           const wrapClass = [
             `circle-wrap-${idx % 6}`,
-            isNervous ? 'is-nervous' : '',
-            isPanicking ? `is-panic-${idx % 6}` : ''
+            isNervous ? 'is-nervous' : ''
           ].filter(Boolean).join(' ')
+
           return (
             <div
               key={c.id}
@@ -101,7 +145,7 @@ export default function CustomerSelector() {
               style={{ cursor: 'pointer', textAlign: 'center', position: 'relative' }}
             >
               <div
-                className={`circle-spin circle-spin-${idx % 6}`}
+                className={`circle-spin ${spinClass}`}
                 style={{
                   width: '160px',
                   height: '160px',
