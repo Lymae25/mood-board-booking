@@ -136,6 +136,10 @@ export async function getTimeline(projectId: string) {
   try { const sql = getDb(); return await sql`SELECT * FROM timeline WHERE "projectId" = ${projectId}` } catch (e) { return [] }
 }
 
+export async function getAllTimelineItems() {
+  try { const sql = getDb(); return await sql`SELECT * FROM timeline ORDER BY "dueDate" ASC` } catch (e) { return [] }
+}
+
 export async function createTimelineItem(projectId: string, item: any) {
   const sql = getDb()
   const id = Date.now().toString()

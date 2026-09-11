@@ -12,12 +12,17 @@ export default function AdminPanel() {
   const [showProjectForm, setShowProjectForm] = useState(false)
   const [customerForm, setCustomerForm] = useState({ name: '', logoUrl: '', pin: '' })
   const [projectForm, setProjectForm] = useState({ customerId: '', name: '', description: '', clientName: '', logoUrl: '', startDate: '', endDate: '' })
-  const [view, setView] = useState<'overview' | 'manage' | 'messages'>('overview')
+  const [view, setView] = useState<'overview' | 'manage' | 'messages' | 'calendar'>('overview')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [messages, setMessages] = useState<any[]>([])
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
   const [reply, setReply] = useState('')
   const [sendingReply, setSendingReply] = useState(false)
+  const [timeline, setTimeline] = useState<any[]>([])
+  const [calendarMonth, setCalendarMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [origin] = useState(() => (typeof window !== 'undefined' ? window.location.origin : ''))
+  const [icsCopied, setIcsCopied] = useState(false)
   const router = useRouter()
 
   useEffect(() => { loadData() }, [])
@@ -50,13 +55,48 @@ export default function AdminPanel() {
   }
 
   async function loadData() {
-    const [c, p] = await Promise.all([
+    const [c, p, t] = await Promise.all([
       fetch('/api/customers?admin=1010').then(r => r.json()),
-      fetch('/api/projects').then(r => r.json())
+      fetch('/api/projects').then(r => r.json()),
+      fetch('/api/timeline?admin=1010').then(r => r.json())
     ])
     setCustomers(c || [])
     setProjects(p || [])
+    setTimeline(t || [])
     setLoading(false)
+  }
+
+  function copyFeedUrl() {
+    const feedUrl = `${origin}/api/calendar/feed.ics`
+    navigator.clipboard.writeText(feedUrl).then(() => {
+      setIcsCopied(true)
+      setTimeout(() => setIcsCopied(false), 2000)
+    })
+  }
+
+  function prevMonth() {
+    setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))
+    setSelectedDate(null)
+  }
+
+  function nextMonth() {
+    setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))
+    setSelectedDate(null)
+  }
+
+  function getMonthGrid(monthDate: Date) {
+    const year = monthDate.getFullYear()
+    const month = monthDate.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const leadingBlanks = (firstDay.getDay() + 6) % 7 // Monday-first
+    const cells: (string | null)[] = []
+    for (let i = 0; i < leadingBlanks; i++) cells.push(null)
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push(`${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`)
+    }
+    while (cells.length % 7 !== 0) cells.push(null)
+    return cells
   }
 
   async function createCustomer(e: any) {
@@ -112,6 +152,38 @@ export default function AdminPanel() {
 
   const totalUnread = messages.filter(m => m.sender === 'customer' && !m.readByAdmin).length
 
+  // Calendar events: project deadlines + timeline milestones, color-coded
+  type CalendarEvent = { id: string, date: string, kind: 'deadline' | 'milestone', title: string, projectId: string, customer: any, color: string }
+  const calendarEvents: CalendarEvent[] = [
+    ...projects.filter((p: any) => p.endDate).map((p: any) => {
+      const customer = customers.find((c: any) => c.id === p.customerId)
+      const days = daysUntil(p.endDate)
+      const done = p.status === 'done'
+      const overdue = !done && days !== null && days < 0
+      const urgent = !done && days !== null && days >= 0 && days <= 7
+      const color = done ? '#4ade80' : overdue ? '#ff6666' : urgent ? '#fbbf24' : '#fff'
+      return { id: `deadline-${p.id}`, date: p.endDate.slice(0, 10), kind: 'deadline' as const, title: p.name, projectId: p.id, customer, color }
+    }),
+    ...timeline.filter((t: any) => t.dueDate).map((t: any) => {
+      const project = projects.find((p: any) => p.id === t.projectId)
+      const customer = project ? customers.find((c: any) => c.id === project.customerId) : undefined
+      const days = daysUntil(t.dueDate)
+      const done = t.status === 'completed' || t.status === 'done'
+      const overdue = !done && days !== null && days < 0
+      const urgent = !done && days !== null && days >= 0 && days <= 7
+      const color = done ? '#4ade80' : overdue ? '#ff6666' : urgent ? '#fbbf24' : '#fff'
+      return { id: `milestone-${t.id}`, date: t.dueDate.slice(0, 10), kind: 'milestone' as const, title: t.title, projectId: t.projectId, customer, color }
+    })
+  ]
+  const eventsByDate: Record<string, CalendarEvent[]> = {}
+  calendarEvents.forEach(e => { (eventsByDate[e.date] = eventsByDate[e.date] || []).push(e) })
+
+  const today = new Date()
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const monthGrid = getMonthGrid(calendarMonth)
+  const monthLabel = calendarMonth.toLocaleDateString('da-DK', { month: 'long', year: 'numeric' })
+  const feedUrl = origin ? `${origin}/api/calendar/feed.ics` : ''
+
   // Stats
   const stats = {
     total: projects.length,
@@ -142,6 +214,7 @@ export default function AdminPanel() {
             Beskeder
             {totalUnread > 0 && <span style={{ position: 'absolute', top: '8px', right: '-20px', backgroundColor: '#ff6666', color: '#fff', fontSize: '9px', fontWeight: 'bold', minWidth: '17px', height: '17px', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>{totalUnread > 9 ? '9+' : totalUnread}</span>}
           </button>
+          <button onClick={() => setView('calendar')} style={{ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: view === 'calendar' ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: view === 'calendar' ? '900' : 'normal', letterSpacing: '1px', textTransform: 'uppercase', borderBottom: view === 'calendar' ? '2px solid #fff' : '2px solid transparent' }}>Kalender</button>
         </div>
 
         {view === 'overview' && (
@@ -420,6 +493,96 @@ export default function AdminPanel() {
                 )
               })()}
             </div>
+          </div>
+        )}
+
+        {view === 'calendar' && (
+          <div>
+            {/* iPhone subscription info box */}
+            <div style={{ border: '1px solid #333', padding: '25px 30px', marginBottom: '40px' }}>
+              <p style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '14px' }}>Synkroniser med iPhone Kalender</p>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
+                <input readOnly value={feedUrl} style={{ flex: 1, minWidth: '260px', padding: '12px 14px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '12px', outline: 'none' }} onFocus={(e) => e.target.select()} />
+                <button onClick={copyFeedUrl} disabled={!feedUrl} style={{ padding: '12px 22px', backgroundColor: icsCopied ? '#4ade80' : '#fff', border: 'none', color: '#000', cursor: feedUrl ? 'pointer' : 'default', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', opacity: feedUrl ? 1 : 0.5, whiteSpace: 'nowrap' }}>{icsCopied ? 'Kopieret ✓' : 'Kopier Link'}</button>
+              </div>
+              <p style={{ fontSize: '12px', color: '#666', lineHeight: '1.7' }}>
+                Åbn iPhone Indstillinger → Kalender → Konti → Tilføj konto → Andre → Tilføj abonneret kalender → Indsæt link
+              </p>
+            </div>
+
+            {/* Month navigation */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '30px' }}>
+              <button onClick={prevMonth} style={{ padding: '10px 18px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', cursor: 'pointer', fontSize: '14px' }}>←</button>
+              <h2 style={{ fontSize: '20px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase' }}>{monthLabel}</h2>
+              <button onClick={nextMonth} style={{ padding: '10px 18px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', cursor: 'pointer', fontSize: '14px' }}>→</button>
+            </div>
+
+            {/* Legend */}
+            <div style={{ display: 'flex', gap: '20px', marginBottom: '25px', flexWrap: 'wrap' }}>
+              {[{ color: '#ff6666', label: 'Forsinket' }, { color: '#fbbf24', label: '< 7 dage' }, { color: '#fff', label: 'Normal' }, { color: '#4ade80', label: 'Done' }].map(l => (
+                <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: l.color, display: 'inline-block' }} />
+                  <span style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{l.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Weekday header */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', marginBottom: '1px' }}>
+              {['MAN', 'TIR', 'ON', 'TOR', 'FRE', 'LØR', 'SØN'].map(d => (
+                <div key={d} style={{ padding: '10px', textAlign: 'center', fontSize: '10px', color: '#666', letterSpacing: '1px' }}>{d}</div>
+              ))}
+            </div>
+
+            {/* Month grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', backgroundColor: '#222', marginBottom: '40px' }}>
+              {monthGrid.map((dateStr, i) => {
+                if (!dateStr) return <div key={i} style={{ backgroundColor: '#000', minHeight: '90px' }} />
+                const dayEvents = eventsByDate[dateStr] || []
+                const isToday = dateStr === todayStr
+                const isSelected = dateStr === selectedDate
+                return (
+                  <div
+                    key={i}
+                    onClick={() => setSelectedDate(dayEvents.length > 0 ? (isSelected ? null : dateStr) : null)}
+                    style={{ backgroundColor: isSelected ? '#111' : '#000', minHeight: '90px', padding: '8px', cursor: dayEvents.length > 0 ? 'pointer' : 'default', border: isToday ? '1px solid #fff' : '1px solid transparent' }}
+                  >
+                    <p style={{ fontSize: '11px', color: isToday ? '#fff' : '#666', fontWeight: isToday ? 'bold' : 'normal', marginBottom: '6px' }}>{parseInt(dateStr.slice(8, 10), 10)}</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                      {dayEvents.slice(0, 4).map(ev => (
+                        <div key={ev.id} title={ev.title} style={{ width: '16px', height: '16px', borderRadius: '50%', border: `2px solid ${ev.color}`, overflow: 'hidden', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {ev.customer?.logoUrl ? <img src={ev.customer.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '7px', color: '#999' }}>{ev.customer?.name?.charAt(0) || '?'}</span>}
+                        </div>
+                      ))}
+                      {dayEvents.length > 4 && <span style={{ fontSize: '9px', color: '#999' }}>+{dayEvents.length - 4}</span>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Selected date event list */}
+            {selectedDate && (
+              <div style={{ border: '1px solid #333', padding: '25px 30px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '20px' }}>
+                  {new Date(selectedDate + 'T00:00:00').toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {(eventsByDate[selectedDate] || []).map(ev => (
+                    <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '14px', border: `1px solid ${ev.color === '#fff' ? '#333' : ev.color}` }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', border: `2px solid ${ev.color}`, overflow: 'hidden', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {ev.customer?.logoUrl ? <img src={ev.customer.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '13px', color: '#999' }}>{ev.customer?.name?.charAt(0) || '?'}</span>}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: '9px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>{ev.customer?.name || 'Ingen kunde'} · {ev.kind === 'deadline' ? 'Deadline' : 'Milestone'}</p>
+                        <p style={{ fontSize: '13px', fontWeight: 'bold', color: ev.color }}>{ev.title}</p>
+                      </div>
+                      <Link href={`/project/${ev.projectId}`} style={{ padding: '8px 14px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', textDecoration: 'none', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>Åbn</Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
