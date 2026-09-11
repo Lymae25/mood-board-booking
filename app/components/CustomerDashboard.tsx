@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import StatusBadge, { getStatusStyle } from './StatusBadge'
 
 export default function CustomerDashboard({ customerId }: { customerId: string }) {
   const [projects, setProjects] = useState<any[]>([])
@@ -32,7 +33,7 @@ export default function CustomerDashboard({ customerId }: { customerId: string }
     await fetch('/api/projects', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, customerId, status: 'active' })
+      body: JSON.stringify({ ...form, customerId, status: 'new' })
     })
     setForm({ name: '', description: '', clientName: '', logoUrl: '', startDate: '', endDate: '' })
     setShowForm(false)
@@ -52,6 +53,14 @@ export default function CustomerDashboard({ customerId }: { customerId: string }
       setNewPin('')
       setTimeout(() => { setShowPinForm(false); setPinMsg('') }, 1500)
     }
+  }
+
+  function daysUntil(dateStr: string) {
+    if (!dateStr) return null
+    const target = new Date(dateStr)
+    const now = new Date()
+    const diff = Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    return diff
   }
 
   if (loading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>LOADING</div>
@@ -109,7 +118,7 @@ export default function CustomerDashboard({ customerId }: { customerId: string }
                 <input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} />
               </div>
               <div>
-                <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>Slut Dato</label>
+                <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>Slut Dato (Deadline)</label>
                 <input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} />
               </div>
             </div>
@@ -125,20 +134,30 @@ export default function CustomerDashboard({ customerId }: { customerId: string }
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '40px' }}>
-          {projects.map((project: any) => (
-            <Link key={project.id} href={`/project/${project.id}`} style={{ textDecoration: 'none' }}>
-              <div style={{ backgroundColor: 'transparent', border: '1px solid #333', cursor: 'pointer', transition: 'all 0.3s' }}>
-                {project.logoUrl && <img src={project.logoUrl} alt={project.name} style={{ width: '100%', height: '160px', objectFit: 'cover' }} />}
-                <div style={{ padding: '30px' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: '900', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>{project.name}</h3>
-                  <p style={{ color: '#999', fontSize: '12px', marginBottom: '15px', lineHeight: '1.6' }}>{project.description}</p>
-                  <div style={{ paddingTop: '20px', borderTop: '1px solid #333' }}>
-                    <span style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{project.status}</span>
+          {projects.map((project: any) => {
+            const days = daysUntil(project.endDate)
+            const urgent = days !== null && days <= 7 && project.status !== 'done'
+            return (
+              <div key={project.id} style={{ backgroundColor: 'transparent', border: urgent ? '1px solid #ff6666' : '1px solid #333', transition: 'all 0.3s', position: 'relative' }}>
+                <Link href={`/project/${project.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+                  {project.logoUrl && <img src={project.logoUrl} alt={project.name} style={{ width: '100%', height: '160px', objectFit: 'cover' }} />}
+                  <div style={{ padding: '30px' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: '900', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px', color: '#fff' }}>{project.name}</h3>
+                    <p style={{ color: '#999', fontSize: '12px', marginBottom: '20px', lineHeight: '1.6' }}>{project.description}</p>
+                    {project.endDate && (
+                      <p style={{ fontSize: '11px', color: urgent ? '#ff6666' : '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '15px' }}>
+                        {urgent ? '⚠ ' : ''}Deadline: {new Date(project.endDate).toLocaleDateString('da-DK')}
+                        {days !== null && ` (${days > 0 ? days + ' dage' : days === 0 ? 'i dag' : Math.abs(days) + ' dage forsinket'})`}
+                      </p>
+                    )}
                   </div>
+                </Link>
+                <div style={{ padding: '0 30px 20px' }}>
+                  <StatusBadge projectId={project.id} status={project.status} onUpdate={loadData} />
                 </div>
               </div>
-            </Link>
-          ))}
+            )
+          })}
         </div>
 
         {projects.length === 0 && !showForm && <div style={{ textAlign: 'center', paddingTop: '60px' }}><p style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>Ingen projekter endnu</p></div>}
