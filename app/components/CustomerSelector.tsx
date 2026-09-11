@@ -10,6 +10,7 @@ export default function CustomerSelector() {
   const [error, setError] = useState('')
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [fadeOut, setFadeOut] = useState(false)
   const rotationsRef = useRef<{ [id: string]: number }>({})
   const speedsRef = useRef<{ [id: string]: number }>({})
   const targetSpeedsRef = useRef<{ [id: string]: number }>({})
@@ -50,7 +51,7 @@ export default function CustomerSelector() {
   }, [hoveredId, customers, selectedId])
 
   useEffect(() => {
-    if (customers.length === 0) return
+    if (customers.length === 0 || selectedId) return
 
     function animate(time: number) {
       const dt = lastTimeRef.current ? (time - lastTimeRef.current) / 1000 : 0
@@ -73,12 +74,14 @@ export default function CustomerSelector() {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       lastTimeRef.current = 0
     }
-  }, [customers])
+  }, [customers, selectedId])
 
   function handleSelect(customerId: string) {
     if (selectedId) return
     setSelectedId(customerId)
-    setTimeout(() => { router.push(`/pin/${customerId}`) }, 1600)
+    // Fade to black before navigation
+    setTimeout(() => setFadeOut(true), 1400)
+    setTimeout(() => { router.push(`/pin/${customerId}`) }, 2000)
   }
 
   function checkAdminPin() {
@@ -88,7 +91,7 @@ export default function CustomerSelector() {
   if (loading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>LOADING</div>
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
       <style>{`
         @keyframes float-1 { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
         @keyframes float-2 { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-12px); } }
@@ -106,6 +109,13 @@ export default function CustomerSelector() {
         .float-4 { animation: float-2 5.5s ease-in-out infinite; }
         .float-5 { animation: float-3 4s ease-in-out infinite; }
         .is-nervous { animation: nervous-shake 0.15s ease-in-out infinite !important; }
+        @keyframes fall-anim {
+          0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+          100% { transform: translate(var(--fall-x), 120vh) rotate(var(--fall-rot)); opacity: 0; }
+        }
+        .falling {
+          animation: fall-anim 1.5s cubic-bezier(0.55, 0.05, 0.6, 0.95) forwards !important;
+        }
       `}</style>
 
       <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', marginBottom: '20px', textTransform: 'uppercase', opacity: selectedId ? 0 : 1, transition: 'opacity 0.6s' }}>MOOD BOARD</h1>
@@ -120,15 +130,12 @@ export default function CustomerSelector() {
 
           const wrapClasses = [
             !selectedId ? `float-${idx % 6}` : '',
-            isNervous ? 'is-nervous' : ''
+            isNervous ? 'is-nervous' : '',
+            isFalling ? 'falling' : ''
           ].filter(Boolean).join(' ')
 
-          const fallOffsetX = (Math.sin(idx * 2.3) * 100)
-          const fallRotation = 45 + (idx * 37) % 90
-
-          const fallTransform = isFalling
-            ? `translate(${fallOffsetX}px, 120vh) rotate(${fallRotation}deg)`
-            : ''
+          const fallOffsetX = (Math.sin(idx * 2.3) * 150)
+          const fallRotation = (45 + (idx * 37) % 90) * (idx % 2 === 0 ? 1 : -1)
 
           return (
             <div
@@ -141,11 +148,10 @@ export default function CustomerSelector() {
                 cursor: selectedId ? 'default' : 'pointer',
                 textAlign: 'center',
                 position: 'relative',
-                transform: fallTransform || undefined,
-                transition: isFalling ? 'transform 1.4s cubic-bezier(0.55, 0.05, 0.6, 0.95), opacity 1.4s ease-in' : undefined,
-                opacity: isFalling ? 0 : 1,
-                zIndex: isSelected ? 100 : 1
-              }}
+                zIndex: isSelected ? 100 : 1,
+                '--fall-x': `${fallOffsetX}px`,
+                '--fall-rot': `${fallRotation}deg`
+              } as any}
             >
               <div
                 style={{
@@ -160,7 +166,7 @@ export default function CustomerSelector() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   transition: 'border 0.3s',
-                  transform: `rotate(${rotation}deg)`,
+                  transform: isFalling ? undefined : `rotate(${rotation}deg)`,
                   willChange: 'transform'
                 }}
               >
@@ -183,6 +189,17 @@ export default function CustomerSelector() {
           <button onClick={checkAdminPin} style={{ padding: '10px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>Login</button>
         </div>
       )}
+
+      {/* Fade to black overlay for smooth transition */}
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: '#000',
+        opacity: fadeOut ? 1 : 0,
+        transition: 'opacity 0.6s ease-in',
+        pointerEvents: 'none',
+        zIndex: 9999
+      }} />
     </div>
   )
 }
