@@ -43,7 +43,8 @@ export default function AdminPanel() {
     loadData()
   }
 
-  async function deleteCustomer(id: string) {
+  async function deleteCustomer(id: string, e: any) {
+    e.stopPropagation()
     if (!confirm('Slet kunde og alle deres projekter?')) return
     await fetch(`/api/customers/${id}`, { method: 'DELETE' })
     loadData()
@@ -98,7 +99,7 @@ export default function AdminPanel() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
             {customers.map((c: any) => (
-              <div key={c.id} style={{ border: '1px solid #333', padding: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <div key={c.id} onClick={() => router.push(`/customer/${c.id}`)} style={{ border: '1px solid #333', padding: '20px', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'all 0.2s' }} onMouseOver={(e) => { e.currentTarget.style.borderColor = '#fff' }} onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333' }}>
                 <div style={{ width: '60px', height: '60px', borderRadius: '50%', border: '1px solid #333', overflow: 'hidden', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {c.logoUrl ? <img src={c.logoUrl} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '20px', color: '#666' }}>{c.name.charAt(0)}</span>}
                 </div>
@@ -106,7 +107,7 @@ export default function AdminPanel() {
                   <h3 style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '5px' }}>{c.name}</h3>
                   <p style={{ fontSize: '11px', color: '#666' }}>PIN: {c.pin}</p>
                 </div>
-                <button onClick={() => deleteCustomer(c.id)} style={{ padding: '6px 12px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', cursor: 'pointer', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>Slet</button>
+                <button onClick={(e) => deleteCustomer(c.id, e)} style={{ padding: '6px 12px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', cursor: 'pointer', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>Slet</button>
               </div>
             ))}
           </div>
