@@ -12,11 +12,42 @@ export default function AdminPanel() {
   const [showProjectForm, setShowProjectForm] = useState(false)
   const [customerForm, setCustomerForm] = useState({ name: '', logoUrl: '', pin: '' })
   const [projectForm, setProjectForm] = useState({ customerId: '', name: '', description: '', clientName: '', logoUrl: '', startDate: '', endDate: '' })
-  const [view, setView] = useState<'overview' | 'manage'>('overview')
+  const [view, setView] = useState<'overview' | 'manage' | 'messages'>('overview')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [messages, setMessages] = useState<any[]>([])
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
+  const [reply, setReply] = useState('')
+  const [sendingReply, setSendingReply] = useState(false)
   const router = useRouter()
 
   useEffect(() => { loadData() }, [])
+
+  useEffect(() => {
+    loadMessages()
+    const iv = setInterval(loadMessages, 6000)
+    return () => clearInterval(iv)
+  }, [])
+
+  async function loadMessages() {
+    const res = await fetch('/api/messages?admin=1010')
+    const data = await res.json()
+    setMessages(data || [])
+  }
+
+  async function openConversation(customerId: string) {
+    setSelectedCustomerId(customerId)
+    await fetch('/api/messages', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customerId, reader: 'admin' }) })
+    setMessages(prev => prev.map(m => m.customerId === customerId && m.sender === 'customer' ? { ...m, readByAdmin: true } : m))
+  }
+
+  async function sendReply() {
+    if (!reply.trim() || !selectedCustomerId || sendingReply) return
+    setSendingReply(true)
+    await fetch('/api/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customerId: selectedCustomerId, sender: 'admin', content: reply.trim() }) })
+    setReply('')
+    setSendingReply(false)
+    loadMessages()
+  }
 
   async function loadData() {
     const [c, p] = await Promise.all([
@@ -79,6 +110,8 @@ export default function AdminPanel() {
 
   const filteredProjects = filterStatus === 'all' ? sortedProjects : sortedProjects.filter(p => p.status === filterStatus)
 
+  const totalUnread = messages.filter(m => m.sender === 'customer' && !m.readByAdmin).length
+
   // Stats
   const stats = {
     total: projects.length,
@@ -105,6 +138,10 @@ export default function AdminPanel() {
         <div style={{ borderBottom: '1px solid #333', marginBottom: '40px' }}>
           <button onClick={() => setView('overview')} style={{ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: view === 'overview' ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: view === 'overview' ? '900' : 'normal', letterSpacing: '1px', textTransform: 'uppercase', borderBottom: view === 'overview' ? '2px solid #fff' : '2px solid transparent' }}>Overblik</button>
           <button onClick={() => setView('manage')} style={{ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: view === 'manage' ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: view === 'manage' ? '900' : 'normal', letterSpacing: '1px', textTransform: 'uppercase', borderBottom: view === 'manage' ? '2px solid #fff' : '2px solid transparent' }}>Håndter Kunder</button>
+          <button onClick={() => setView('messages')} style={{ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: view === 'messages' ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: view === 'messages' ? '900' : 'normal', letterSpacing: '1px', textTransform: 'uppercase', borderBottom: view === 'messages' ? '2px solid #fff' : '2px solid transparent', position: 'relative' }}>
+            Beskeder
+            {totalUnread > 0 && <span style={{ position: 'absolute', top: '8px', right: '-20px', backgroundColor: '#ff6666', color: '#fff', fontSize: '9px', fontWeight: 'bold', minWidth: '17px', height: '17px', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>{totalUnread > 9 ? '9+' : totalUnread}</span>}
+          </button>
         </div>
 
         {view === 'overview' && (
@@ -307,6 +344,81 @@ export default function AdminPanel() {
                   )
                 })}
               </div>
+            </div>
+          </div>
+        )}
+
+        {view === 'messages' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '30px', minHeight: '500px' }}>
+            <div style={{ border: '1px solid #333' }}>
+              <div style={{ padding: '20px', borderBottom: '1px solid #333' }}>
+                <h2 style={{ fontSize: '14px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase' }}>Samtaler</h2>
+              </div>
+              <div>
+                {customers.length === 0 && <p style={{ padding: '20px', color: '#666', fontSize: '12px' }}>Ingen kunder endnu</p>}
+                {customers.map((c: any) => {
+                  const msgs = messages.filter((m: any) => m.customerId === c.id)
+                  const unread = msgs.filter((m: any) => m.sender === 'customer' && !m.readByAdmin).length
+                  const last = msgs[msgs.length - 1]
+                  const active = selectedCustomerId === c.id
+                  return (
+                    <div key={c.id} onClick={() => openConversation(c.id)} style={{ padding: '16px 20px', borderBottom: '1px solid #222', cursor: 'pointer', backgroundColor: active ? '#111' : 'transparent', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', border: '1px solid #333', backgroundColor: '#111', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {c.logoUrl ? <img src={c.logoUrl} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '13px', color: '#666' }}>{c.name.charAt(0)}</span>}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>{c.name}</p>
+                        <p style={{ fontSize: '11px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{last ? `${last.sender === 'admin' ? 'Dig: ' : ''}${last.content}` : 'Ingen beskeder endnu'}</p>
+                      </div>
+                      {unread > 0 && <span style={{ backgroundColor: '#ff6666', color: '#fff', fontSize: '10px', fontWeight: 'bold', minWidth: '20px', height: '20px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px', flexShrink: 0 }}>{unread}</span>}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div style={{ border: '1px solid #333', display: 'flex', flexDirection: 'column' }}>
+              {!selectedCustomerId ? (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <p style={{ color: '#666', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>Vælg en samtale</p>
+                </div>
+              ) : (() => {
+                const activeCustomer = customers.find((c: any) => c.id === selectedCustomerId)
+                const thread = messages.filter((m: any) => m.customerId === selectedCustomerId)
+                return (
+                  <>
+                    <div style={{ padding: '20px', borderBottom: '1px solid #333' }}>
+                      <p style={{ fontSize: '13px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>{activeCustomer?.name}</p>
+                    </div>
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '400px' }}>
+                      {thread.length === 0 && <p style={{ color: '#666', fontSize: '12px' }}>Ingen beskeder endnu</p>}
+                      {thread.map((m: any) => (
+                        <div key={m.id} style={{ alignSelf: m.sender === 'admin' ? 'flex-end' : 'flex-start', maxWidth: '70%' }}>
+                          {(m.projectRef || m.sceneRef) && (
+                            <p style={{ fontSize: '9px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', textAlign: m.sender === 'admin' ? 'right' : 'left' }}>
+                              {[m.projectRef, m.sceneRef].filter(Boolean).join(' · ')}
+                            </p>
+                          )}
+                          <div style={{ padding: '10px 14px', backgroundColor: m.sender === 'admin' ? '#fff' : 'transparent', color: m.sender === 'admin' ? '#000' : '#fff', border: m.sender === 'admin' ? 'none' : '1px solid #333', fontSize: '13px', lineHeight: '1.5', wordBreak: 'break-word' }}>
+                            {m.content}
+                          </div>
+                          <p style={{ fontSize: '9px', color: '#666', marginTop: '4px', textAlign: m.sender === 'admin' ? 'right' : 'left' }}>{new Date(m.createdAt).toLocaleString('da-DK')}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ padding: '16px 20px', borderTop: '1px solid #333', display: 'flex', gap: '10px' }}>
+                      <textarea
+                        value={reply}
+                        onChange={(e) => setReply(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply() } }}
+                        placeholder="Skriv et svar..."
+                        style={{ flex: 1, resize: 'none', minHeight: '40px', maxHeight: '100px', padding: '10px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }}
+                      />
+                      <button onClick={sendReply} disabled={sendingReply || !reply.trim()} style={{ padding: '0 20px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', opacity: sendingReply || !reply.trim() ? 0.5 : 1 }}>Send</button>
+                    </div>
+                  </>
+                )
+              })()}
             </div>
           </div>
         )}

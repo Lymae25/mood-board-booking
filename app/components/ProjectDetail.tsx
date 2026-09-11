@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import ChatWidget from './ChatWidget'
 
 export default function ProjectDetail({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<any>(null)
@@ -12,6 +13,8 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
   const [tab, setTab] = useState('scenes')
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isCustomerView = searchParams.get('customer') === '1'
 
   const [showSceneForm, setShowSceneForm] = useState(false)
   const [sceneForm, setSceneForm] = useState({ title: '', description: '', imageUrl: '', referenceUrl: '', referenceNote: '' })
@@ -277,6 +280,10 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
           </div>
         )}
       </div>
+
+      {isCustomerView && project?.customerId && (
+        <ChatWidget customerId={project.customerId} projectName={project.name} scenes={scenes.map((s: any) => ({ id: s.id, title: s.title }))} />
+      )}
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import StatusBadge, { getStatusStyle } from './StatusBadge'
+import ChatWidget from './ChatWidget'
 
 export default function CustomerDashboard({ customerId }: { customerId: string }) {
   const [projects, setProjects] = useState<any[]>([])
@@ -139,7 +140,7 @@ export default function CustomerDashboard({ customerId }: { customerId: string }
             const urgent = days !== null && days <= 7 && project.status !== 'done'
             return (
               <div key={project.id} style={{ backgroundColor: 'transparent', border: urgent ? '1px solid #ff6666' : '1px solid #333', transition: 'all 0.3s', position: 'relative' }}>
-                <Link href={`/project/${project.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+                <Link href={`/project/${project.id}?customer=1`} style={{ textDecoration: 'none', display: 'block' }}>
                   {project.logoUrl && <img src={project.logoUrl} alt={project.name} style={{ width: '100%', height: '160px', objectFit: 'cover' }} />}
                   <div style={{ padding: '30px' }}>
                     <h3 style={{ fontSize: '16px', fontWeight: '900', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px', color: '#fff' }}>{project.name}</h3>
@@ -162,6 +163,8 @@ export default function CustomerDashboard({ customerId }: { customerId: string }
 
         {projects.length === 0 && !showForm && <div style={{ textAlign: 'center', paddingTop: '60px' }}><p style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>Ingen projekter endnu</p></div>}
       </div>
+
+      <ChatWidget customerId={customerId} />
     </div>
   )
 }
