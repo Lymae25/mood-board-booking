@@ -1,4 +1,18 @@
-import postgres from 'postgres'
+export async function initDB() {
+  try {
+    const sql = getDb()
+    await sql`DROP TABLE IF EXISTS projects CASCADE`
+    await sql`DROP TABLE IF EXISTS scenes CASCADE`
+    await sql`DROP TABLE IF EXISTS sceneNotes CASCADE`
+    await sql`DROP TABLE IF EXISTS ideas CASCADE`
+    await sql`DROP TABLE IF EXISTS timeline CASCADE`
+    await sql`CREATE TABLE IF NOT EXISTS projects ("id" TEXT PRIMARY KEY, "name" TEXT NOT NULL, "description" TEXT, "clientName" TEXT, "logoUrl" TEXT, "status" TEXT, "startDate" TEXT, "endDate" TEXT, "createdAt" TEXT)`
+    await sql`CREATE TABLE IF NOT EXISTS scenes ("id" TEXT PRIMARY KEY, "projectId" TEXT NOT NULL, "sceneNumber" INTEGER, "title" TEXT NOT NULL, "description" TEXT, "imageUrl" TEXT, "createdAt" TEXT)`
+    await sql`CREATE TABLE IF NOT EXISTS sceneNotes ("id" TEXT PRIMARY KEY, "sceneId" TEXT NOT NULL, "projectId" TEXT NOT NULL, "content" TEXT NOT NULL, "createdAt" TEXT)`
+    await sql`CREATE TABLE IF NOT EXISTS ideas ("id" TEXT PRIMARY KEY, "projectId" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "imageUrl" TEXT, "category" TEXT, "createdAt" TEXT)`
+    await sql`CREATE TABLE IF NOT EXISTS timeline ("id" TEXT PRIMARY KEY, "projectId" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "dueDate" TEXT, "status" TEXT, "imageUrl" TEXT, "createdAt" TEXT)`
+  } catch (e) { console.error('DB init error:', e) }
+}import postgres from 'postgres'
 
 let sql: any = null
 
