@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from '@/lib/useTranslation'
 
 interface ChatScene { id: string; title: string }
 
@@ -11,6 +12,7 @@ export default function ChatWidget({ customerId, projectName, scenes }: { custom
   const [sending, setSending] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const { t } = useTranslation()
 
   useEffect(() => {
     if (!customerId) return
@@ -63,14 +65,14 @@ export default function ChatWidget({ customerId, projectName, scenes }: { custom
         <div style={{ width: '340px', height: '460px', backgroundColor: '#000', border: '1px solid #333', display: 'flex', flexDirection: 'column', marginBottom: '15px', boxShadow: '0 0 40px rgba(0,0,0,0.6)' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <p style={{ fontSize: '12px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase' }}>Besked til Admin</p>
+              <p style={{ fontSize: '12px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('chat.title', 'Besked til Admin')}</p>
               {projectName && <p style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>{projectName}</p>}
             </div>
             <button onClick={() => setOpen(false)} style={{ background: 'transparent', border: 'none', color: '#999', fontSize: '18px', cursor: 'pointer', lineHeight: 1 }}>×</button>
           </div>
 
           <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {messages.length === 0 && <p style={{ color: '#666', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>Skriv til admin herunder</p>}
+            {messages.length === 0 && <p style={{ color: '#666', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('chat.emptyState', 'Skriv til admin herunder')}</p>}
             {messages.map(m => (
               <div key={m.id} style={{ alignSelf: m.sender === 'customer' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
                 {(m.projectRef || m.sceneRef) && (
@@ -89,7 +91,7 @@ export default function ChatWidget({ customerId, projectName, scenes }: { custom
           <div style={{ padding: '14px 20px', borderTop: '1px solid #333' }}>
             {scenes && scenes.length > 0 && (
               <select value={taggedScene} onChange={(e) => setTaggedScene(e.target.value)} style={{ width: '100%', padding: '8px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: taggedScene ? '#fff' : '#666', fontSize: '11px', outline: 'none', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                <option value="" style={{ backgroundColor: '#000' }}>Tag en scene (valgfri)</option>
+                <option value="" style={{ backgroundColor: '#000' }}>{t('chat.tagScene', 'Tag en scene (valgfri)')}</option>
                 {scenes.map(s => <option key={s.id} value={s.id} style={{ backgroundColor: '#000' }}>{s.title}</option>)}
               </select>
             )}
@@ -98,10 +100,10 @@ export default function ChatWidget({ customerId, projectName, scenes }: { custom
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-                placeholder="Skriv en besked..."
+                placeholder={t('chat.typeMessage', 'Skriv en besked...')}
                 style={{ flex: 1, resize: 'none', minHeight: '38px', maxHeight: '80px', padding: '8px 10px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }}
               />
-              <button onClick={send} disabled={sending || !input.trim()} style={{ padding: '0 18px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: sending ? 'default' : 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', opacity: sending || !input.trim() ? 0.5 : 1 }}>Send</button>
+              <button onClick={send} disabled={sending || !input.trim()} style={{ padding: '0 18px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: sending ? 'default' : 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', opacity: sending || !input.trim() ? 0.5 : 1 }}>{t('common.send', 'Send')}</button>
             </div>
           </div>
         </div>

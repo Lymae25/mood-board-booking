@@ -33,6 +33,10 @@ export async function getAllCustomers() {
   try { const sql = getDb(); return await sql`SELECT * FROM customers ORDER BY "name" ASC` } catch (e) { return [] }
 }
 
+export async function getCustomerById(id: string) {
+  try { const sql = getDb(); const result = await sql`SELECT * FROM customers WHERE "id" = ${id}`; return result[0] || null } catch (e) { return null }
+}
+
 export async function createCustomer(data: any) {
   const sql = getDb()
   const id = Date.now().toString()

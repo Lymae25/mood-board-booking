@@ -1,23 +1,25 @@
 'use client'
 import { useState } from 'react'
+import { useTranslation } from '@/lib/useTranslation'
 
 export const STATUSES = [
-  { key: 'new', label: 'New', color: '#6b7280', bg: '#1f2937' },
-  { key: 'under-construction', label: 'Under Construction', color: '#fbbf24', bg: '#78350f' },
-  { key: 'editing', label: 'Editing', color: '#60a5fa', bg: '#1e3a8a' },
-  { key: 'pending-verification', label: 'Pending Verification', color: '#f472b6', bg: '#831843' },
-  { key: 'done', label: 'Done', color: '#4ade80', bg: '#14532d' }
+  { key: 'new', label: 'New', labelKey: 'status.new', color: '#6b7280', bg: '#1f2937' },
+  { key: 'under-construction', label: 'Under Construction', labelKey: 'status.underConstruction', color: '#fbbf24', bg: '#78350f' },
+  { key: 'editing', label: 'Editing', labelKey: 'status.editing', color: '#60a5fa', bg: '#1e3a8a' },
+  { key: 'pending-verification', label: 'Pending Verification', labelKey: 'status.pendingVerification', color: '#f472b6', bg: '#831843' },
+  { key: 'done', label: 'Done', labelKey: 'status.done', color: '#4ade80', bg: '#14532d' }
 ]
 
 export function getStatusStyle(status: string) {
   const s = STATUSES.find(x => x.key === status) || STATUSES[0]
-  return { color: s.color, bg: s.bg, label: s.label }
+  return { color: s.color, bg: s.bg, label: s.label, labelKey: s.labelKey }
 }
 
 export default function StatusBadge({ projectId, status, editable = true, onUpdate }: { projectId: string, status: string, editable?: boolean, onUpdate?: (newStatus: string) => void }) {
   const [current, setCurrent] = useState(status || 'new')
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const { t } = useTranslation()
 
   const style = getStatusStyle(current)
 
@@ -41,7 +43,7 @@ export default function StatusBadge({ projectId, status, editable = true, onUpda
   if (!editable) {
     return (
       <span style={{ display: 'inline-block', padding: '4px 10px', backgroundColor: style.bg, color: style.color, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', borderRadius: '2px' }}>
-        {style.label}
+        {t(style.labelKey, style.label)}
       </span>
     )
   }
@@ -53,7 +55,7 @@ export default function StatusBadge({ projectId, status, editable = true, onUpda
         disabled={saving}
         style={{ padding: '4px 10px', backgroundColor: style.bg, color: style.color, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', border: 'none', cursor: 'pointer', borderRadius: '2px', opacity: saving ? 0.5 : 1 }}
       >
-        {style.label} ▾
+        {t(style.labelKey, style.label)} ▾
       </button>
       {open && (
         <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '4px', backgroundColor: '#000', border: '1px solid #333', minWidth: '200px', zIndex: 200 }}>
@@ -65,7 +67,7 @@ export default function StatusBadge({ projectId, status, editable = true, onUpda
               onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#1a1a1a' }}
               onMouseOut={(e) => { e.currentTarget.style.backgroundColor = current === s.key ? '#111' : 'transparent' }}
             >
-              {s.label}
+              {t(s.labelKey, s.label)}
             </button>
           ))}
         </div>

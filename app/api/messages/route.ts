@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { initDB, getMessagesByCustomer, getAllMessages, createMessage, markMessagesRead } from '@/lib/db-postgres'
+import { initDB, getMessagesByCustomer, getAllMessages, createMessage, markMessagesRead, getCustomerById } from '@/lib/db-postgres'
+import { sendCustomerMessageEmail } from '@/lib/sendEmail'
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,6 +26,26 @@ export async function POST(request: NextRequest) {
     const data = await request.json()
     if (!data.customerId || !data.content) return NextResponse.json({ error: 'customerId and content required' }, { status: 400 })
     const message = await createMessage(data)
+
+    // Notify admin by email when a customer messages in. The message is
+    // already saved above, so an email failure here must never surface as
+    // an error to the customer - just log it and move on.
+    if (message.sender === 'customer') {
+      try {
+        const customer = await getCustomerById(data.customerId)
+        await sendCustomerMessageEmail({
+          customerId: data.customerId,
+          customerName: customer?.name || 'Ukendt kunde',
+          customerLogoUrl: customer?.logoUrl,
+          content: message.content,
+          sceneRef: message.sceneRef,
+          projectRef: message.projectRef
+        })
+      } catch (emailError) {
+        console.error('POST /api/messages: failed to send admin notification email', emailError)
+      }
+    }
+
     return NextResponse.json(message, { status: 201 })
   } catch (error) {
     console.error('POST /api/messages error:', error)

@@ -1,12 +1,15 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from '@/lib/useTranslation'
+import LanguageSwitcher from './LanguageSwitcher'
 
 export default function PinScreen({ customerId }: { customerId: string }) {
   const [pin, setPin] = useState(['', '', '', ''])
   const [error, setError] = useState('')
   const [customer, setCustomer] = useState<any>(null)
   const router = useRouter()
+  const { t } = useTranslation()
 
   useEffect(() => {
     fetch('/api/customers').then(r => r.json()).then(data => {
@@ -42,7 +45,7 @@ export default function PinScreen({ customerId }: { customerId: string }) {
     if (data.valid) {
       router.push(`/customer/${customerId}`)
     } else {
-      setError('Forkert kode')
+      setError(t('pin.wrongCode', 'Forkert kode'))
       setPin(['', '', '', ''])
       setTimeout(() => { setError(''); document.getElementById('pin-0')?.focus() }, 1500)
     }
@@ -50,6 +53,7 @@ export default function PinScreen({ customerId }: { customerId: string }) {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <LanguageSwitcher />
       {customer && (
         <>
           <div style={{ width: '160px', height: '160px', borderRadius: '50%', border: '2px solid #333', overflow: 'hidden', marginBottom: '30px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -58,7 +62,7 @@ export default function PinScreen({ customerId }: { customerId: string }) {
           <h2 style={{ fontSize: '24px', fontWeight: '900', letterSpacing: '2px', marginBottom: '10px', textTransform: 'uppercase' }}>{customer.name}</h2>
         </>
       )}
-      <p style={{ fontSize: '12px', color: '#999', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '40px' }}>Indtast 4-cifret kode</p>
+      <p style={{ fontSize: '12px', color: '#999', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '40px' }}>{t('pin.enterCode', 'Indtast 4-cifret kode')}</p>
 
       <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
         {pin.map((digit, i) => (
@@ -77,8 +81,8 @@ export default function PinScreen({ customerId }: { customerId: string }) {
       </div>
 
       {error && <p style={{ color: '#ff6666', fontSize: '14px', marginBottom: '20px' }}>{error}</p>}
-      
-      <button onClick={() => router.push('/')} style={{ marginTop: '40px', padding: '10px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>← Tilbage</button>
+
+      <button onClick={() => router.push('/')} style={{ marginTop: '40px', padding: '10px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>← {t('common.back', 'Tilbage')}</button>
     </div>
   )
 }

@@ -1,8 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import StatusBadge, { STATUSES, getStatusStyle } from './StatusBadge'
+import { useRouter, useSearchParams } from 'next/navigation'
+import StatusBadge, { STATUSES } from './StatusBadge'
+import LanguageSwitcher from './LanguageSwitcher'
+import { useTranslation } from '@/lib/useTranslation'
 
 export default function AdminPanel() {
   const [customers, setCustomers] = useState<any[]>([])
@@ -12,7 +14,13 @@ export default function AdminPanel() {
   const [showProjectForm, setShowProjectForm] = useState(false)
   const [customerForm, setCustomerForm] = useState({ name: '', logoUrl: '', pin: '' })
   const [projectForm, setProjectForm] = useState({ customerId: '', name: '', description: '', clientName: '', logoUrl: '', startDate: '', endDate: '' })
-  const [view, setView] = useState<'overview' | 'manage' | 'messages' | 'calendar'>('overview')
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const chatParam = searchParams.get('chat')
+  // Bonus: ?chat=<customerId> in the URL (e.g. from an email link) opens
+  // straight into the Beskeder tab, derived once up front so there's no
+  // flash of the Overblik tab before switching.
+  const [view, setView] = useState<'overview' | 'manage' | 'messages' | 'calendar'>(() => (chatParam ? 'messages' : 'overview'))
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [messages, setMessages] = useState<any[]>([])
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
@@ -21,9 +29,7 @@ export default function AdminPanel() {
   const [timeline, setTimeline] = useState<any[]>([])
   const [calendarMonth, setCalendarMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [origin] = useState(() => (typeof window !== 'undefined' ? window.location.origin : ''))
-  const [icsCopied, setIcsCopied] = useState(false)
-  const router = useRouter()
+  const { t } = useTranslation()
 
   useEffect(() => { loadData() }, [])
 
@@ -32,6 +38,10 @@ export default function AdminPanel() {
     const iv = setInterval(loadMessages, 6000)
     return () => clearInterval(iv)
   }, [])
+
+  useEffect(() => {
+    if (chatParam) openConversation(chatParam)
+  }, [chatParam])
 
   async function loadMessages() {
     const res = await fetch('/api/messages?admin=1010')
@@ -64,14 +74,6 @@ export default function AdminPanel() {
     setProjects(p || [])
     setTimeline(t || [])
     setLoading(false)
-  }
-
-  function copyFeedUrl() {
-    const feedUrl = `${origin}/api/calendar/feed.ics`
-    navigator.clipboard.writeText(feedUrl).then(() => {
-      setIcsCopied(true)
-      setTimeout(() => setIcsCopied(false), 2000)
-    })
   }
 
   function prevMonth() {
@@ -119,13 +121,13 @@ export default function AdminPanel() {
 
   async function deleteCustomer(id: string, e: any) {
     e.stopPropagation()
-    if (!confirm('Slet kunde og alle deres projekter?')) return
+    if (!confirm(t('admin.deleteCustomerConfirm', 'Slet kunde og alle deres projekter?'))) return
     await fetch(`/api/customers/${id}`, { method: 'DELETE' })
     loadData()
   }
 
   async function deleteProject(id: string) {
-    if (!confirm('Slet projekt?')) return
+    if (!confirm(t('admin.deleteProjectConfirm', 'Slet projekt?'))) return
     await fetch(`/api/projects/${id}`, { method: 'DELETE' })
     loadData()
   }
@@ -182,7 +184,7 @@ export default function AdminPanel() {
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const monthGrid = getMonthGrid(calendarMonth)
   const monthLabel = calendarMonth.toLocaleDateString('da-DK', { month: 'long', year: 'numeric' })
-  const feedUrl = origin ? `${origin}/api/calendar/feed.ics` : ''
+  const weekdays = t('admin.calendarWeekdays', 'MAN,TIR,ON,TOR,FRE,LØR,SØN').split(',')
 
   // Stats
   const stats = {
@@ -193,28 +195,29 @@ export default function AdminPanel() {
     done: projects.filter(p => p.status === 'done').length
   }
 
-  if (loading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>LOADING</div>
+  if (loading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t('common.loading', 'LOADING')}</div>
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '60px 40px' }}>
+      <LanguageSwitcher />
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         <div style={{ marginBottom: '60px', borderBottom: '1px solid #333', paddingBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px' }}>ADMIN</h1>
-            <p style={{ fontSize: '12px', color: '#999', letterSpacing: '1px', textTransform: 'uppercase' }}>Chrome Vault Studios</p>
+            <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px' }}>{t('admin.title', 'ADMIN')}</h1>
+            <p style={{ fontSize: '12px', color: '#999', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('admin.subtitle', 'Chrome Vault Studios')}</p>
           </div>
-          <button onClick={() => router.push('/')} style={{ padding: '10px 20px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>Log ud</button>
+          <button onClick={() => router.push('/')} style={{ padding: '10px 20px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.logout', 'Log ud')}</button>
         </div>
 
         {/* View toggle */}
         <div style={{ borderBottom: '1px solid #333', marginBottom: '40px' }}>
-          <button onClick={() => setView('overview')} style={{ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: view === 'overview' ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: view === 'overview' ? '900' : 'normal', letterSpacing: '1px', textTransform: 'uppercase', borderBottom: view === 'overview' ? '2px solid #fff' : '2px solid transparent' }}>Overblik</button>
-          <button onClick={() => setView('manage')} style={{ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: view === 'manage' ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: view === 'manage' ? '900' : 'normal', letterSpacing: '1px', textTransform: 'uppercase', borderBottom: view === 'manage' ? '2px solid #fff' : '2px solid transparent' }}>Håndter Kunder</button>
+          <button onClick={() => setView('overview')} style={{ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: view === 'overview' ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: view === 'overview' ? '900' : 'normal', letterSpacing: '1px', textTransform: 'uppercase', borderBottom: view === 'overview' ? '2px solid #fff' : '2px solid transparent' }}>{t('admin.tabOverview', 'Overblik')}</button>
+          <button onClick={() => setView('manage')} style={{ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: view === 'manage' ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: view === 'manage' ? '900' : 'normal', letterSpacing: '1px', textTransform: 'uppercase', borderBottom: view === 'manage' ? '2px solid #fff' : '2px solid transparent' }}>{t('admin.tabManage', 'Håndter Kunder')}</button>
           <button onClick={() => setView('messages')} style={{ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: view === 'messages' ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: view === 'messages' ? '900' : 'normal', letterSpacing: '1px', textTransform: 'uppercase', borderBottom: view === 'messages' ? '2px solid #fff' : '2px solid transparent', position: 'relative' }}>
-            Beskeder
+            {t('admin.tabMessages', 'Beskeder')}
             {totalUnread > 0 && <span style={{ position: 'absolute', top: '8px', right: '-20px', backgroundColor: '#ff6666', color: '#fff', fontSize: '9px', fontWeight: 'bold', minWidth: '17px', height: '17px', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>{totalUnread > 9 ? '9+' : totalUnread}</span>}
           </button>
-          <button onClick={() => setView('calendar')} style={{ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: view === 'calendar' ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: view === 'calendar' ? '900' : 'normal', letterSpacing: '1px', textTransform: 'uppercase', borderBottom: view === 'calendar' ? '2px solid #fff' : '2px solid transparent' }}>Kalender</button>
+          <button onClick={() => setView('calendar')} style={{ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: view === 'calendar' ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: view === 'calendar' ? '900' : 'normal', letterSpacing: '1px', textTransform: 'uppercase', borderBottom: view === 'calendar' ? '2px solid #fff' : '2px solid transparent' }}>{t('admin.tabCalendar', 'Kalender')}</button>
         </div>
 
         {view === 'overview' && (
@@ -222,41 +225,41 @@ export default function AdminPanel() {
             {/* Stats */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginBottom: '50px' }}>
               <div style={{ padding: '25px', border: '1px solid #333' }}>
-                <p style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Total Projekter</p>
+                <p style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{t('admin.statTotalProjects', 'Total Projekter')}</p>
                 <p style={{ fontSize: '36px', fontWeight: '900' }}>{stats.total}</p>
               </div>
               <div style={{ padding: '25px', border: '1px solid #333' }}>
-                <p style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Aktive</p>
+                <p style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{t('admin.statActive', 'Aktive')}</p>
                 <p style={{ fontSize: '36px', fontWeight: '900', color: '#60a5fa' }}>{stats.active}</p>
               </div>
               <div style={{ padding: '25px', border: `1px solid ${stats.urgent > 0 ? '#fbbf24' : '#333'}` }}>
-                <p style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>⚠ Deadline &lt; 7 dage</p>
+                <p style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{t('admin.statUrgent', '⚠ Deadline < 7 dage')}</p>
                 <p style={{ fontSize: '36px', fontWeight: '900', color: stats.urgent > 0 ? '#fbbf24' : '#fff' }}>{stats.urgent}</p>
               </div>
               <div style={{ padding: '25px', border: `1px solid ${stats.overdue > 0 ? '#ff6666' : '#333'}` }}>
-                <p style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>🔴 Forsinket</p>
+                <p style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{t('admin.statOverdue', '🔴 Forsinket')}</p>
                 <p style={{ fontSize: '36px', fontWeight: '900', color: stats.overdue > 0 ? '#ff6666' : '#fff' }}>{stats.overdue}</p>
               </div>
               <div style={{ padding: '25px', border: '1px solid #333' }}>
-                <p style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>✓ Færdige</p>
+                <p style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{t('admin.statDone', '✓ Færdige')}</p>
                 <p style={{ fontSize: '36px', fontWeight: '900', color: '#4ade80' }}>{stats.done}</p>
               </div>
             </div>
 
             {/* Filter */}
             <div style={{ marginBottom: '30px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginRight: '10px' }}>Filter:</span>
-              <button onClick={() => setFilterStatus('all')} style={{ padding: '6px 14px', backgroundColor: filterStatus === 'all' ? '#fff' : 'transparent', color: filterStatus === 'all' ? '#000' : '#999', border: '1px solid #333', cursor: 'pointer', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>Alle</button>
+              <span style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginRight: '10px' }}>{t('admin.filterLabel', 'Filter:')}</span>
+              <button onClick={() => setFilterStatus('all')} style={{ padding: '6px 14px', backgroundColor: filterStatus === 'all' ? '#fff' : 'transparent', color: filterStatus === 'all' ? '#000' : '#999', border: '1px solid #333', cursor: 'pointer', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('admin.filterAll', 'Alle')}</button>
               {STATUSES.map(s => (
-                <button key={s.key} onClick={() => setFilterStatus(s.key)} style={{ padding: '6px 14px', backgroundColor: filterStatus === s.key ? s.bg : 'transparent', color: filterStatus === s.key ? s.color : '#999', border: `1px solid ${filterStatus === s.key ? s.color : '#333'}`, cursor: 'pointer', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>{s.label}</button>
+                <button key={s.key} onClick={() => setFilterStatus(s.key)} style={{ padding: '6px 14px', backgroundColor: filterStatus === s.key ? s.bg : 'transparent', color: filterStatus === s.key ? s.color : '#999', border: `1px solid ${filterStatus === s.key ? s.color : '#333'}`, cursor: 'pointer', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>{t(s.labelKey, s.label)}</button>
               ))}
             </div>
 
             {/* Projects table/list */}
             <div>
-              <h2 style={{ fontSize: '20px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '20px' }}>Projekter</h2>
+              <h2 style={{ fontSize: '20px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '20px' }}>{t('admin.projectsHeading', 'Projekter')}</h2>
               {filteredProjects.length === 0 ? (
-                <p style={{ color: '#666', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>Ingen projekter matcher filtret</p>
+                <p style={{ color: '#666', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('admin.noProjectsMatchFilter', 'Ingen projekter matcher filtret')}</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {filteredProjects.map((p: any) => {
@@ -274,27 +277,27 @@ export default function AdminPanel() {
                           </div>
                         )}
                         <div>
-                          <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>{customer?.name || 'Ingen kunde'}</p>
+                          <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>{customer?.name || t('admin.noCustomer', 'Ingen kunde')}</p>
                           <h3 style={{ fontSize: '15px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>{p.name}</h3>
                           {p.description && <p style={{ fontSize: '11px', color: '#999' }}>{p.description}</p>}
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           {p.endDate ? (
                             <>
-                              <p style={{ fontSize: '11px', color: overdue ? '#ff6666' : urgent ? '#fbbf24' : '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Deadline</p>
+                              <p style={{ fontSize: '11px', color: overdue ? '#ff6666' : urgent ? '#fbbf24' : '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>{t('customer.deadlineLabel', 'Deadline')}</p>
                               <p style={{ fontSize: '13px', color: overdue ? '#ff6666' : urgent ? '#fbbf24' : '#fff', fontWeight: 'bold' }}>{new Date(p.endDate).toLocaleDateString('da-DK')}</p>
                               {days !== null && (
                                 <p style={{ fontSize: '10px', color: overdue ? '#ff6666' : urgent ? '#fbbf24' : '#666', marginTop: '2px' }}>
-                                  {days > 0 ? `${days} dage` : days === 0 ? 'I dag' : `${Math.abs(days)} dage forsinket`}
+                                  {days > 0 ? `${days} ${t('customer.daysLabel', 'dage')}` : days === 0 ? t('customer.todayLabel', 'I dag') : `${Math.abs(days)} ${t('customer.overdueDaysLabel', 'dage forsinket')}`}
                                 </p>
                               )}
                             </>
                           ) : (
-                            <p style={{ fontSize: '11px', color: '#666' }}>Ingen deadline</p>
+                            <p style={{ fontSize: '11px', color: '#666' }}>{t('admin.noDeadline', 'Ingen deadline')}</p>
                           )}
                         </div>
                         <StatusBadge projectId={p.id} status={p.status} onUpdate={loadData} />
-                        <Link href={`/project/${p.id}`} style={{ padding: '8px 14px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', textDecoration: 'none', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>Åbn</Link>
+                        <Link href={`/project/${p.id}`} style={{ padding: '8px 14px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', textDecoration: 'none', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.open', 'Åbn')}</Link>
                       </div>
                     )
                   })}
@@ -309,27 +312,27 @@ export default function AdminPanel() {
             {/* KUNDER */}
             <div style={{ marginBottom: '80px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                <h2 style={{ fontSize: '20px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase' }}>Kunder</h2>
-                {!showCustomerForm && <button onClick={() => setShowCustomerForm(true)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #fff', color: '#fff', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 'bold' }}>+ Ny Kunde</button>}
+                <h2 style={{ fontSize: '20px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase' }}>{t('admin.customersHeading', 'Kunder')}</h2>
+                {!showCustomerForm && <button onClick={() => setShowCustomerForm(true)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #fff', color: '#fff', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 'bold' }}>+ {t('admin.newCustomer', 'Ny Kunde')}</button>}
               </div>
 
               {showCustomerForm && (
                 <form onSubmit={createCustomer} style={{ marginBottom: '40px', maxWidth: '600px', border: '1px solid #333', padding: '30px' }}>
                   <div style={{ marginBottom: '20px' }}>
-                    <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>Kunde Navn</label>
+                    <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.customerName', 'Kunde Navn')}</label>
                     <input type="text" value={customerForm.name} onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} required />
                   </div>
                   <div style={{ marginBottom: '20px' }}>
-                    <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>Logo URL</label>
+                    <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.logoUrl', 'Logo URL')}</label>
                     <input type="url" value={customerForm.logoUrl} onChange={(e) => setCustomerForm({ ...customerForm, logoUrl: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} />
                   </div>
                   <div style={{ marginBottom: '30px' }}>
-                    <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>PIN (4 cifre)</label>
+                    <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.pinLabel', 'PIN (4 cifre)')}</label>
                     <input type="password" value={customerForm.pin} onChange={(e) => setCustomerForm({ ...customerForm, pin: e.target.value })} maxLength={4} pattern="[0-9]{4}" style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} required />
                   </div>
                   <div style={{ display: 'flex', gap: '15px' }}>
-                    <button type="submit" style={{ padding: '12px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>Opret</button>
-                    <button type="button" onClick={() => setShowCustomerForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>Annuller</button>
+                    <button type="submit" style={{ padding: '12px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.create', 'Opret')}</button>
+                    <button type="button" onClick={() => setShowCustomerForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.cancel', 'Annuller')}</button>
                   </div>
                 </form>
               )}
@@ -342,9 +345,9 @@ export default function AdminPanel() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <h3 style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '5px' }}>{c.name}</h3>
-                      <p style={{ fontSize: '11px', color: '#666' }}>PIN: {c.pin}</p>
+                      <p style={{ fontSize: '11px', color: '#666' }}>{t('admin.pinPrefix', 'PIN:')} {c.pin}</p>
                     </div>
-                    <button onClick={(e) => deleteCustomer(c.id, e)} style={{ padding: '6px 12px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', cursor: 'pointer', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>Slet</button>
+                    <button onClick={(e) => deleteCustomer(c.id, e)} style={{ padding: '6px 12px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', cursor: 'pointer', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.delete', 'Slet')}</button>
                   </div>
                 ))}
               </div>
@@ -353,44 +356,44 @@ export default function AdminPanel() {
             {/* PROJEKTER */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                <h2 style={{ fontSize: '20px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase' }}>Alle Projekter</h2>
-                {!showProjectForm && customers.length > 0 && <button onClick={() => setShowProjectForm(true)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #fff', color: '#fff', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 'bold' }}>+ Nyt Projekt</button>}
+                <h2 style={{ fontSize: '20px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase' }}>{t('admin.allProjectsHeading', 'Alle Projekter')}</h2>
+                {!showProjectForm && customers.length > 0 && <button onClick={() => setShowProjectForm(true)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #fff', color: '#fff', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 'bold' }}>+ {t('admin.newProjectBtn', 'Nyt Projekt')}</button>}
               </div>
 
               {showProjectForm && (
                 <form onSubmit={createProject} style={{ marginBottom: '40px', maxWidth: '600px', border: '1px solid #333', padding: '30px' }}>
                   <div style={{ marginBottom: '20px' }}>
-                    <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>Kunde</label>
+                    <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.customerLabel', 'Kunde')}</label>
                     <select value={projectForm.customerId} onChange={(e) => setProjectForm({ ...projectForm, customerId: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} required>
-                      <option value="" style={{ backgroundColor: '#000' }}>Vælg kunde</option>
+                      <option value="" style={{ backgroundColor: '#000' }}>{t('admin.selectCustomer', 'Vælg kunde')}</option>
                       {customers.map((c: any) => <option key={c.id} value={c.id} style={{ backgroundColor: '#000' }}>{c.name}</option>)}
                     </select>
                   </div>
                   <div style={{ marginBottom: '20px' }}>
-                    <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>Projekt Navn</label>
+                    <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.projectName', 'Projekt Navn')}</label>
                     <input type="text" value={projectForm.name} onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} required />
                   </div>
                   <div style={{ marginBottom: '20px' }}>
-                    <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>Beskrivelse</label>
+                    <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.description', 'Beskrivelse')}</label>
                     <textarea value={projectForm.description} onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none', minHeight: '60px', fontFamily: 'inherit', resize: 'none' }} />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                     <div>
-                      <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>Start Dato</label>
+                      <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.startDate', 'Start Dato')}</label>
                       <input type="date" value={projectForm.startDate} onChange={(e) => setProjectForm({ ...projectForm, startDate: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} />
                     </div>
                     <div>
-                      <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>Deadline</label>
+                      <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.deadlineLabel', 'Deadline')}</label>
                       <input type="date" value={projectForm.endDate} onChange={(e) => setProjectForm({ ...projectForm, endDate: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} />
                     </div>
                   </div>
                   <div style={{ marginBottom: '30px' }}>
-                    <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>Logo URL</label>
+                    <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.logoUrl', 'Logo URL')}</label>
                     <input type="url" value={projectForm.logoUrl} onChange={(e) => setProjectForm({ ...projectForm, logoUrl: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} />
                   </div>
                   <div style={{ display: 'flex', gap: '15px' }}>
-                    <button type="submit" style={{ padding: '12px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>Opret</button>
-                    <button type="button" onClick={() => setShowProjectForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>Annuller</button>
+                    <button type="submit" style={{ padding: '12px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.create', 'Opret')}</button>
+                    <button type="button" onClick={() => setShowProjectForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.cancel', 'Annuller')}</button>
                   </div>
                 </form>
               )}
@@ -402,15 +405,15 @@ export default function AdminPanel() {
                     <div key={p.id} style={{ border: '1px solid #333' }}>
                       {p.logoUrl && <img src={p.logoUrl} alt={p.name} style={{ width: '100%', height: '120px', objectFit: 'cover' }} />}
                       <div style={{ padding: '20px' }}>
-                        <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{customer?.name || 'Ingen kunde'}</p>
+                        <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{customer?.name || t('admin.noCustomer', 'Ingen kunde')}</p>
                         <h3 style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{p.name}</h3>
                         <p style={{ fontSize: '12px', color: '#999', marginBottom: '15px' }}>{p.description}</p>
                         <div style={{ marginBottom: '15px' }}>
                           <StatusBadge projectId={p.id} status={p.status} onUpdate={loadData} />
                         </div>
                         <div style={{ display: 'flex', gap: '10px' }}>
-                          <Link href={`/project/${p.id}`} style={{ padding: '6px 12px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', textDecoration: 'none', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>Åbn</Link>
-                          <button onClick={() => deleteProject(p.id)} style={{ padding: '6px 12px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', cursor: 'pointer', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>Slet</button>
+                          <Link href={`/project/${p.id}`} style={{ padding: '6px 12px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', textDecoration: 'none', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.open', 'Åbn')}</Link>
+                          <button onClick={() => deleteProject(p.id)} style={{ padding: '6px 12px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', cursor: 'pointer', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.delete', 'Slet')}</button>
                         </div>
                       </div>
                     </div>
@@ -425,10 +428,10 @@ export default function AdminPanel() {
           <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '30px', minHeight: '500px' }}>
             <div style={{ border: '1px solid #333' }}>
               <div style={{ padding: '20px', borderBottom: '1px solid #333' }}>
-                <h2 style={{ fontSize: '14px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase' }}>Samtaler</h2>
+                <h2 style={{ fontSize: '14px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('admin.conversationsHeading', 'Samtaler')}</h2>
               </div>
               <div>
-                {customers.length === 0 && <p style={{ padding: '20px', color: '#666', fontSize: '12px' }}>Ingen kunder endnu</p>}
+                {customers.length === 0 && <p style={{ padding: '20px', color: '#666', fontSize: '12px' }}>{t('admin.noCustomersYet', 'Ingen kunder endnu')}</p>}
                 {customers.map((c: any) => {
                   const msgs = messages.filter((m: any) => m.customerId === c.id)
                   const unread = msgs.filter((m: any) => m.sender === 'customer' && !m.readByAdmin).length
@@ -441,7 +444,7 @@ export default function AdminPanel() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>{c.name}</p>
-                        <p style={{ fontSize: '11px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{last ? `${last.sender === 'admin' ? 'Dig: ' : ''}${last.content}` : 'Ingen beskeder endnu'}</p>
+                        <p style={{ fontSize: '11px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{last ? `${last.sender === 'admin' ? t('admin.youPrefix', 'Dig:') + ' ' : ''}${last.content}` : t('admin.noMessagesYet', 'Ingen beskeder endnu')}</p>
                       </div>
                       {unread > 0 && <span style={{ backgroundColor: '#ff6666', color: '#fff', fontSize: '10px', fontWeight: 'bold', minWidth: '20px', height: '20px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px', flexShrink: 0 }}>{unread}</span>}
                     </div>
@@ -453,7 +456,7 @@ export default function AdminPanel() {
             <div style={{ border: '1px solid #333', display: 'flex', flexDirection: 'column' }}>
               {!selectedCustomerId ? (
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <p style={{ color: '#666', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>Vælg en samtale</p>
+                  <p style={{ color: '#666', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('admin.selectConversation', 'Vælg en samtale')}</p>
                 </div>
               ) : (() => {
                 const activeCustomer = customers.find((c: any) => c.id === selectedCustomerId)
@@ -464,7 +467,7 @@ export default function AdminPanel() {
                       <p style={{ fontSize: '13px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>{activeCustomer?.name}</p>
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '400px' }}>
-                      {thread.length === 0 && <p style={{ color: '#666', fontSize: '12px' }}>Ingen beskeder endnu</p>}
+                      {thread.length === 0 && <p style={{ color: '#666', fontSize: '12px' }}>{t('admin.noMessagesYet', 'Ingen beskeder endnu')}</p>}
                       {thread.map((m: any) => (
                         <div key={m.id} style={{ alignSelf: m.sender === 'admin' ? 'flex-end' : 'flex-start', maxWidth: '70%' }}>
                           {(m.projectRef || m.sceneRef) && (
@@ -484,10 +487,10 @@ export default function AdminPanel() {
                         value={reply}
                         onChange={(e) => setReply(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply() } }}
-                        placeholder="Skriv et svar..."
+                        placeholder={t('admin.typeReplyPlaceholder', 'Skriv et svar...')}
                         style={{ flex: 1, resize: 'none', minHeight: '40px', maxHeight: '100px', padding: '10px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }}
                       />
-                      <button onClick={sendReply} disabled={sendingReply || !reply.trim()} style={{ padding: '0 20px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', opacity: sendingReply || !reply.trim() ? 0.5 : 1 }}>Send</button>
+                      <button onClick={sendReply} disabled={sendingReply || !reply.trim()} style={{ padding: '0 20px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', opacity: sendingReply || !reply.trim() ? 0.5 : 1 }}>{t('common.send', 'Send')}</button>
                     </div>
                   </>
                 )
@@ -498,18 +501,6 @@ export default function AdminPanel() {
 
         {view === 'calendar' && (
           <div>
-            {/* iPhone subscription info box */}
-            <div style={{ border: '1px solid #333', padding: '25px 30px', marginBottom: '40px' }}>
-              <p style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '14px' }}>Synkroniser med iPhone Kalender</p>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
-                <input readOnly value={feedUrl} style={{ flex: 1, minWidth: '260px', padding: '12px 14px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '12px', outline: 'none' }} onFocus={(e) => e.target.select()} />
-                <button onClick={copyFeedUrl} disabled={!feedUrl} style={{ padding: '12px 22px', backgroundColor: icsCopied ? '#4ade80' : '#fff', border: 'none', color: '#000', cursor: feedUrl ? 'pointer' : 'default', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', opacity: feedUrl ? 1 : 0.5, whiteSpace: 'nowrap' }}>{icsCopied ? 'Kopieret ✓' : 'Kopier Link'}</button>
-              </div>
-              <p style={{ fontSize: '12px', color: '#666', lineHeight: '1.7' }}>
-                Åbn iPhone Indstillinger → Kalender → Konti → Tilføj konto → Andre → Tilføj abonneret kalender → Indsæt link
-              </p>
-            </div>
-
             {/* Month navigation */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '30px' }}>
               <button onClick={prevMonth} style={{ padding: '10px 18px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', cursor: 'pointer', fontSize: '14px' }}>←</button>
@@ -519,7 +510,12 @@ export default function AdminPanel() {
 
             {/* Legend */}
             <div style={{ display: 'flex', gap: '20px', marginBottom: '25px', flexWrap: 'wrap' }}>
-              {[{ color: '#ff6666', label: 'Forsinket' }, { color: '#fbbf24', label: '< 7 dage' }, { color: '#fff', label: 'Normal' }, { color: '#4ade80', label: 'Done' }].map(l => (
+              {[
+                { color: '#ff6666', label: t('admin.calendarLegendOverdue', 'Forsinket') },
+                { color: '#fbbf24', label: t('admin.calendarLegendUrgent', '< 7 dage') },
+                { color: '#fff', label: t('admin.calendarLegendNormal', 'Normal') },
+                { color: '#4ade80', label: t('admin.calendarLegendDone', 'Done') }
+              ].map(l => (
                 <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: l.color, display: 'inline-block' }} />
                   <span style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{l.label}</span>
@@ -529,7 +525,7 @@ export default function AdminPanel() {
 
             {/* Weekday header */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', marginBottom: '1px' }}>
-              {['MAN', 'TIR', 'ON', 'TOR', 'FRE', 'LØR', 'SØN'].map(d => (
+              {weekdays.map(d => (
                 <div key={d} style={{ padding: '10px', textAlign: 'center', fontSize: '10px', color: '#666', letterSpacing: '1px' }}>{d}</div>
               ))}
             </div>
@@ -574,10 +570,10 @@ export default function AdminPanel() {
                         {ev.customer?.logoUrl ? <img src={ev.customer.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '13px', color: '#999' }}>{ev.customer?.name?.charAt(0) || '?'}</span>}
                       </div>
                       <div style={{ flex: 1 }}>
-                        <p style={{ fontSize: '9px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>{ev.customer?.name || 'Ingen kunde'} · {ev.kind === 'deadline' ? 'Deadline' : 'Milestone'}</p>
+                        <p style={{ fontSize: '9px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>{ev.customer?.name || t('admin.noCustomer', 'Ingen kunde')} · {ev.kind === 'deadline' ? t('admin.calendarDeadlineKind', 'Deadline') : t('admin.calendarMilestoneKind', 'Milestone')}</p>
                         <p style={{ fontSize: '13px', fontWeight: 'bold', color: ev.color }}>{ev.title}</p>
                       </div>
-                      <Link href={`/project/${ev.projectId}`} style={{ padding: '8px 14px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', textDecoration: 'none', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>Åbn</Link>
+                      <Link href={`/project/${ev.projectId}`} style={{ padding: '8px 14px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', textDecoration: 'none', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.open', 'Åbn')}</Link>
                     </div>
                   ))}
                 </div>

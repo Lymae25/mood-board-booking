@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import ChatWidget from './ChatWidget'
+import LanguageSwitcher from './LanguageSwitcher'
+import { useTranslation } from '@/lib/useTranslation'
 
 export default function ProjectDetail({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<any>(null)
@@ -15,6 +17,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isCustomerView = searchParams.get('customer') === '1'
+  const { t } = useTranslation()
 
   const [showSceneForm, setShowSceneForm] = useState(false)
   const [sceneForm, setSceneForm] = useState({ title: '', description: '', imageUrl: '', referenceUrl: '', referenceNote: '' })
@@ -27,7 +30,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
   useEffect(() => { loadAll() }, [projectId])
 
   async function loadAll() {
-    const [p, s, i, t] = await Promise.all([
+    const [p, s, i, tl] = await Promise.all([
       fetch(`/api/projects`).then(r => r.json()),
       fetch(`/api/scenes?projectId=${projectId}`).then(r => r.json()),
       fetch(`/api/ideas?projectId=${projectId}`).then(r => r.json()),
@@ -36,7 +39,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
     setProject(p.find((x: any) => x.id === projectId))
     setScenes(s || [])
     setIdeas(i || [])
-    setTimeline(t || [])
+    setTimeline(tl || [])
     setLoading(false)
   }
 
@@ -119,7 +122,13 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
     return { text: parts[0], refUrl: refLines[0] || '', refNote: refLines.slice(1).join('\n') || '' }
   }
 
-  if (loading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>LOADING</div>
+  function milestoneStatusLabel(status: string) {
+    if (status === 'in-progress') return t('project.statusInProgress', 'In Progress')
+    if (status === 'done' || status === 'completed') return t('project.statusDone', 'Done')
+    return t('project.statusPending', 'Pending')
+  }
+
+  if (loading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t('common.loading', 'LOADING')}</div>
 
   const inputStyle = { width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none', marginBottom: '15px', fontFamily: 'inherit' }
   const btnStyle = { padding: '10px 20px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' as const }
@@ -128,35 +137,36 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '40px' }}>
+      <LanguageSwitcher />
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        <button onClick={() => router.back()} style={{ ...btnGhost, marginBottom: '30px' }}>← Tilbage</button>
+        <button onClick={() => router.back()} style={{ ...btnGhost, marginBottom: '30px' }}>← {t('common.back', 'Tilbage')}</button>
 
         <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px' }}>{project?.name}</h1>
         <p style={{ color: '#999', marginBottom: '40px' }}>{project?.description}</p>
 
         <div style={{ borderBottom: '1px solid #333', marginBottom: '40px' }}>
-          <button onClick={() => setTab('scenes')} style={tabBtn(tab === 'scenes')}>Scener ({scenes.length})</button>
-          <button onClick={() => setTab('inspo')} style={tabBtn(tab === 'inspo')}>Inspo ({ideas.length})</button>
-          <button onClick={() => setTab('timeline')} style={tabBtn(tab === 'timeline')}>Timeline ({timeline.length})</button>
+          <button onClick={() => setTab('scenes')} style={tabBtn(tab === 'scenes')}>{t('project.tabScenes', 'Scener')} ({scenes.length})</button>
+          <button onClick={() => setTab('inspo')} style={tabBtn(tab === 'inspo')}>{t('project.tabInspo', 'Inspo')} ({ideas.length})</button>
+          <button onClick={() => setTab('timeline')} style={tabBtn(tab === 'timeline')}>{t('project.tabTimeline', 'Timeline')} ({timeline.length})</button>
         </div>
 
         {tab === 'scenes' && (
           <div>
-            {!showSceneForm && <button onClick={() => setShowSceneForm(true)} style={{ ...btnStyle, marginBottom: '30px' }}>+ Ny Scene</button>}
+            {!showSceneForm && <button onClick={() => setShowSceneForm(true)} style={{ ...btnStyle, marginBottom: '30px' }}>+ {t('project.newScene', 'Ny Scene')}</button>}
             {showSceneForm && (
               <div style={{ border: '1px solid #333', padding: '30px', marginBottom: '30px', maxWidth: '600px' }}>
-                <input placeholder="Scene titel" value={sceneForm.title} onChange={(e) => setSceneForm({ ...sceneForm, title: e.target.value })} style={inputStyle} />
-                <textarea placeholder="Beskrivelse - hvad sker der?" value={sceneForm.description} onChange={(e) => setSceneForm({ ...sceneForm, description: e.target.value })} style={{ ...inputStyle, minHeight: '80px', resize: 'none' }} />
-                <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px', marginTop: '10px' }}>Reference Link (Instagram, YouTube, TikTok...)</label>
+                <input placeholder={t('project.sceneTitlePlaceholder', 'Scene titel')} value={sceneForm.title} onChange={(e) => setSceneForm({ ...sceneForm, title: e.target.value })} style={inputStyle} />
+                <textarea placeholder={t('project.descriptionPlaceholder', 'Beskrivelse - hvad sker der?')} value={sceneForm.description} onChange={(e) => setSceneForm({ ...sceneForm, description: e.target.value })} style={{ ...inputStyle, minHeight: '80px', resize: 'none' }} />
+                <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px', marginTop: '10px' }}>{t('project.referenceLink', 'Reference Link (Instagram, YouTube, TikTok...)')}</label>
                 <input placeholder="https://..." value={sceneForm.referenceUrl} onChange={(e) => setSceneForm({ ...sceneForm, referenceUrl: e.target.value })} style={inputStyle} />
-                <textarea placeholder="Note til reference (fx 'skal være noget ala det her')" value={sceneForm.referenceNote} onChange={(e) => setSceneForm({ ...sceneForm, referenceNote: e.target.value })} style={{ ...inputStyle, minHeight: '60px', resize: 'none' }} />
+                <textarea placeholder={t('project.referenceNotePlaceholder', "Note til reference (fx 'skal være noget ala det her')")} value={sceneForm.referenceNote} onChange={(e) => setSceneForm({ ...sceneForm, referenceNote: e.target.value })} style={{ ...inputStyle, minHeight: '60px', resize: 'none' }} />
                 <div onDrop={(e) => handleDrop(e, setSceneForm, sceneForm)} onDragOver={(e) => e.preventDefault()} style={{ border: '1px dashed #333', padding: '20px', textAlign: 'center', marginBottom: '15px', cursor: 'pointer' }} onClick={() => document.getElementById('scene-file')?.click()}>
-                  {sceneForm.imageUrl ? <img src={sceneForm.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: '200px' }} /> : <span style={{ color: '#666', fontSize: '12px' }}>Drag & drop billede eller klik</span>}
+                  {sceneForm.imageUrl ? <img src={sceneForm.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: '200px' }} /> : <span style={{ color: '#666', fontSize: '12px' }}>{t('project.dragDropImage', 'Drag & drop billede eller klik')}</span>}
                   <input type="file" id="scene-file" accept="image/*" onChange={(e) => handleImageUpload(e, setSceneForm, sceneForm)} style={{ display: 'none' }} />
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={createScene} style={btnStyle}>Gem</button>
-                  <button onClick={() => setShowSceneForm(false)} style={btnGhost}>Annuller</button>
+                  <button onClick={createScene} style={btnStyle}>{t('common.save', 'Gem')}</button>
+                  <button onClick={() => setShowSceneForm(false)} style={btnGhost}>{t('common.cancel', 'Annuller')}</button>
                 </div>
               </div>
             )}
@@ -187,18 +197,18 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
                     <p style={{ color: '#ccc', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{parsed.text}</p>
                     {parsed.refUrl && (
                       <div style={{ marginTop: '20px', padding: '20px', border: '1px solid #333' }}>
-                        <p style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>REFERENCE</p>
+                        <p style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{t('project.reference', 'REFERENCE')}</p>
                         <a href={parsed.refUrl} target="_blank" style={{ color: '#66aaff', wordBreak: 'break-all', fontSize: '12px' }}>{parsed.refUrl}</a>
                         {parsed.refNote && <p style={{ color: '#ccc', fontSize: '13px', marginTop: '10px', fontStyle: 'italic' }}>"{parsed.refNote}"</p>}
                       </div>
                     )}
                   </div>
                   <div style={{ border: '1px solid #333', padding: '30px' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: '900', marginBottom: '20px', textTransform: 'uppercase' }}>Noter</h3>
-                    <textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Tilføj note..." style={{ ...inputStyle, minHeight: '80px', resize: 'none' }} />
-                    <button onClick={addNote} style={btnStyle}>+ Tilføj</button>
+                    <h3 style={{ fontSize: '16px', fontWeight: '900', marginBottom: '20px', textTransform: 'uppercase' }}>{t('project.notes', 'Noter')}</h3>
+                    <textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder={t('project.addNotePlaceholder', 'Tilføj note...')} style={{ ...inputStyle, minHeight: '80px', resize: 'none' }} />
+                    <button onClick={addNote} style={btnStyle}>+ {t('project.addNoteButton', 'Tilføj')}</button>
                     <div style={{ marginTop: '30px' }}>
-                      {notes.length === 0 && <p style={{ color: '#666', fontSize: '12px' }}>Ingen noter endnu</p>}
+                      {notes.length === 0 && <p style={{ color: '#666', fontSize: '12px' }}>{t('project.noNotesYet', 'Ingen noter endnu')}</p>}
                       {notes.map((n: any) => (
                         <div key={n.id} style={{ padding: '15px', borderBottom: '1px solid #222' }}>
                           <p style={{ color: '#ccc', fontSize: '14px' }}>{n.content}</p>
@@ -215,19 +225,19 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
 
         {tab === 'inspo' && (
           <div>
-            {!showIdeaForm && <button onClick={() => setShowIdeaForm(true)} style={{ ...btnStyle, marginBottom: '30px' }}>+ Ny Inspiration</button>}
+            {!showIdeaForm && <button onClick={() => setShowIdeaForm(true)} style={{ ...btnStyle, marginBottom: '30px' }}>+ {t('project.newInspiration', 'Ny Inspiration')}</button>}
             {showIdeaForm && (
               <div style={{ border: '1px solid #333', padding: '30px', marginBottom: '30px', maxWidth: '600px' }}>
-                <input placeholder="Titel" value={ideaForm.title} onChange={(e) => setIdeaForm({ ...ideaForm, title: e.target.value })} style={inputStyle} />
-                <textarea placeholder="Note (fx 'skal være noget ala det her')" value={ideaForm.description} onChange={(e) => setIdeaForm({ ...ideaForm, description: e.target.value })} style={{ ...inputStyle, minHeight: '80px', resize: 'none' }} />
-                <input placeholder="Link (Instagram, YouTube, TikTok...)" value={ideaForm.category} onChange={(e) => setIdeaForm({ ...ideaForm, category: e.target.value })} style={inputStyle} />
+                <input placeholder={t('project.titlePlaceholder', 'Titel')} value={ideaForm.title} onChange={(e) => setIdeaForm({ ...ideaForm, title: e.target.value })} style={inputStyle} />
+                <textarea placeholder={t('project.ideaNotePlaceholder', "Note (fx 'skal være noget ala det her')")} value={ideaForm.description} onChange={(e) => setIdeaForm({ ...ideaForm, description: e.target.value })} style={{ ...inputStyle, minHeight: '80px', resize: 'none' }} />
+                <input placeholder={t('project.linkPlaceholder', 'Link (Instagram, YouTube, TikTok...)')} value={ideaForm.category} onChange={(e) => setIdeaForm({ ...ideaForm, category: e.target.value })} style={inputStyle} />
                 <div onDrop={(e) => handleDrop(e, setIdeaForm, ideaForm)} onDragOver={(e) => e.preventDefault()} style={{ border: '1px dashed #333', padding: '20px', textAlign: 'center', marginBottom: '15px', cursor: 'pointer' }} onClick={() => document.getElementById('idea-file')?.click()}>
-                  {ideaForm.imageUrl ? <img src={ideaForm.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: '200px' }} /> : <span style={{ color: '#666', fontSize: '12px' }}>Drag & drop billede eller klik (valgfrit)</span>}
+                  {ideaForm.imageUrl ? <img src={ideaForm.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: '200px' }} /> : <span style={{ color: '#666', fontSize: '12px' }}>{t('project.dragDropImageOptional', 'Drag & drop billede eller klik (valgfrit)')}</span>}
                   <input type="file" id="idea-file" accept="image/*" onChange={(e) => handleImageUpload(e, setIdeaForm, ideaForm)} style={{ display: 'none' }} />
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={createIdea} style={btnStyle}>Gem</button>
-                  <button onClick={() => setShowIdeaForm(false)} style={btnGhost}>Annuller</button>
+                  <button onClick={createIdea} style={btnStyle}>{t('common.save', 'Gem')}</button>
+                  <button onClick={() => setShowIdeaForm(false)} style={btnGhost}>{t('common.cancel', 'Annuller')}</button>
                 </div>
               </div>
             )}
@@ -240,42 +250,42 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
                   {i.category && (i.category.startsWith('http') ? <a href={i.category} target="_blank" style={{ color: '#66aaff', fontSize: '12px', wordBreak: 'break-all' }}>{i.category}</a> : <span style={{ color: '#666', fontSize: '11px' }}>{i.category}</span>)}
                 </div>
               ))}
-              {ideas.length === 0 && !showIdeaForm && <p style={{ color: '#666', fontSize: '12px' }}>Ingen inspiration endnu</p>}
+              {ideas.length === 0 && !showIdeaForm && <p style={{ color: '#666', fontSize: '12px' }}>{t('project.noInspirationYet', 'Ingen inspiration endnu')}</p>}
             </div>
           </div>
         )}
 
         {tab === 'timeline' && (
           <div>
-            {!showTimelineForm && <button onClick={() => setShowTimelineForm(true)} style={{ ...btnStyle, marginBottom: '30px' }}>+ Milestone</button>}
+            {!showTimelineForm && <button onClick={() => setShowTimelineForm(true)} style={{ ...btnStyle, marginBottom: '30px' }}>+ {t('project.newMilestone', 'Milestone')}</button>}
             {showTimelineForm && (
               <div style={{ border: '1px solid #333', padding: '30px', marginBottom: '30px', maxWidth: '600px' }}>
-                <input placeholder="Titel" value={timelineForm.title} onChange={(e) => setTimelineForm({ ...timelineForm, title: e.target.value })} style={inputStyle} />
-                <textarea placeholder="Beskrivelse" value={timelineForm.description} onChange={(e) => setTimelineForm({ ...timelineForm, description: e.target.value })} style={{ ...inputStyle, minHeight: '60px', resize: 'none' }} />
+                <input placeholder={t('project.titlePlaceholder', 'Titel')} value={timelineForm.title} onChange={(e) => setTimelineForm({ ...timelineForm, title: e.target.value })} style={inputStyle} />
+                <textarea placeholder={t('customer.description', 'Beskrivelse')} value={timelineForm.description} onChange={(e) => setTimelineForm({ ...timelineForm, description: e.target.value })} style={{ ...inputStyle, minHeight: '60px', resize: 'none' }} />
                 <input type="date" value={timelineForm.dueDate} onChange={(e) => setTimelineForm({ ...timelineForm, dueDate: e.target.value })} style={inputStyle} />
                 <select value={timelineForm.status} onChange={(e) => setTimelineForm({ ...timelineForm, status: e.target.value })} style={inputStyle}>
-                  <option value="pending">Pending</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="done">Done</option>
+                  <option value="pending">{t('project.statusPending', 'Pending')}</option>
+                  <option value="in-progress">{t('project.statusInProgress', 'In Progress')}</option>
+                  <option value="done">{t('project.statusDone', 'Done')}</option>
                 </select>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={createTimelineItem} style={btnStyle}>Gem</button>
-                  <button onClick={() => setShowTimelineForm(false)} style={btnGhost}>Annuller</button>
+                  <button onClick={createTimelineItem} style={btnStyle}>{t('common.save', 'Gem')}</button>
+                  <button onClick={() => setShowTimelineForm(false)} style={btnGhost}>{t('common.cancel', 'Annuller')}</button>
                 </div>
               </div>
             )}
             <div>
-              {timeline.map((t: any) => (
-                <div key={t.id} style={{ border: '1px solid #333', padding: '20px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {timeline.map((tItem: any) => (
+                <div key={tItem.id} style={{ border: '1px solid #333', padding: '20px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <h3 style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '5px' }}>{t.title}</h3>
-                    <p style={{ color: '#999', fontSize: '12px' }}>{t.description}</p>
-                    <p style={{ color: '#666', fontSize: '11px', marginTop: '5px' }}>{t.dueDate}</p>
+                    <h3 style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '5px' }}>{tItem.title}</h3>
+                    <p style={{ color: '#999', fontSize: '12px' }}>{tItem.description}</p>
+                    <p style={{ color: '#666', fontSize: '11px', marginTop: '5px' }}>{tItem.dueDate}</p>
                   </div>
-                  <span style={{ fontSize: '10px', color: '#999', border: '1px solid #333', padding: '4px 10px', textTransform: 'uppercase' }}>{t.status}</span>
+                  <span style={{ fontSize: '10px', color: '#999', border: '1px solid #333', padding: '4px 10px', textTransform: 'uppercase' }}>{milestoneStatusLabel(tItem.status)}</span>
                 </div>
               ))}
-              {timeline.length === 0 && !showTimelineForm && <p style={{ color: '#666', fontSize: '12px' }}>Ingen milestones endnu</p>}
+              {timeline.length === 0 && !showTimelineForm && <p style={{ color: '#666', fontSize: '12px' }}>{t('project.noMilestonesYet', 'Ingen milestones endnu')}</p>}
             </div>
           </div>
         )}

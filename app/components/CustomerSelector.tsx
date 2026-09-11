@@ -1,6 +1,8 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from '@/lib/useTranslation'
+import LanguageSwitcher from './LanguageSwitcher'
 
 export default function CustomerSelector() {
   const [customers, setCustomers] = useState<any[]>([])
@@ -18,6 +20,7 @@ export default function CustomerSelector() {
   const lastTimeRef = useRef<number>(0)
   const [, setTick] = useState(0)
   const router = useRouter()
+  const { t } = useTranslation()
 
   useEffect(() => {
     fetch('/api/customers').then(r => r.json()).then(data => { setCustomers(data || []); setLoading(false) })
@@ -85,13 +88,14 @@ export default function CustomerSelector() {
   }
 
   function checkAdminPin() {
-    if (adminPin === '1010') { router.push('/admin') } else { setError('Forkert kode'); setTimeout(() => setError(''), 2000) }
+    if (adminPin === '1010') { router.push('/admin') } else { setError(t('selector.wrongCode', 'Forkert kode')); setTimeout(() => setError(''), 2000) }
   }
 
-  if (loading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>LOADING</div>
+  if (loading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t('common.loading', 'LOADING')}</div>
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+      <LanguageSwitcher />
       <style>{`
         @keyframes float-1 { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
         @keyframes float-2 { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-12px); } }
@@ -118,9 +122,9 @@ export default function CustomerSelector() {
         }
       `}</style>
 
-      <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', marginBottom: '20px', textTransform: 'uppercase', opacity: selectedId ? 0 : 1, transition: 'opacity 0.6s' }}>MOOD BOARD</h1>
-      <p style={{ fontSize: '14px', color: '#999', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '80px', opacity: selectedId ? 0 : 1, transition: 'opacity 0.6s' }}>Vælg bruger</p>
-      
+      <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', marginBottom: '20px', textTransform: 'uppercase', opacity: selectedId ? 0 : 1, transition: 'opacity 0.6s' }}>{t('selector.title', 'MOOD BOARD')}</h1>
+      <p style={{ fontSize: '14px', color: '#999', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '80px', opacity: selectedId ? 0 : 1, transition: 'opacity 0.6s' }}>{t('selector.subtitle', 'Vælg bruger')}</p>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '40px', maxWidth: '1200px', width: '100%', marginBottom: '80px' }}>
         {customers.map((c: any, idx: number) => {
           const isNervous = hoveredId === c.id && !selectedId
@@ -178,15 +182,15 @@ export default function CustomerSelector() {
         })}
       </div>
 
-      {customers.length === 0 && <p style={{ color: '#666', marginBottom: '40px' }}>Ingen brugere endnu. Login som admin for at oprette.</p>}
+      {customers.length === 0 && <p style={{ color: '#666', marginBottom: '40px' }}>{t('selector.noUsers', 'Ingen brugere endnu. Login som admin for at oprette.')}</p>}
 
-      {!showAdminPin && !selectedId && <button onClick={() => setShowAdminPin(true)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>Admin Login</button>}
-      
+      {!showAdminPin && !selectedId && <button onClick={() => setShowAdminPin(true)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('selector.adminLogin', 'Admin Login')}</button>}
+
       {showAdminPin && !selectedId && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-          <input type="password" value={adminPin} onChange={(e) => setAdminPin(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && checkAdminPin()} maxLength={4} placeholder="Admin PIN" style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', fontSize: '18px', textAlign: 'center', letterSpacing: '8px', width: '200px' }} autoFocus />
+          <input type="password" value={adminPin} onChange={(e) => setAdminPin(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && checkAdminPin()} maxLength={4} placeholder={t('selector.adminPinPlaceholder', 'Admin PIN')} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', fontSize: '18px', textAlign: 'center', letterSpacing: '8px', width: '200px' }} autoFocus />
           {error && <p style={{ color: '#ff6666', fontSize: '12px' }}>{error}</p>}
-          <button onClick={checkAdminPin} style={{ padding: '10px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>Login</button>
+          <button onClick={checkAdminPin} style={{ padding: '10px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('selector.loginButton', 'Login')}</button>
         </div>
       )}
 
