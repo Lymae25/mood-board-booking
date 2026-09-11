@@ -6,6 +6,7 @@ import StatusBadge, { getStatusStyle } from './StatusBadge'
 import ChatWidget from './ChatWidget'
 import LanguageSwitcher from './LanguageSwitcher'
 import FileUploader from './FileUploader'
+import AdminNav from './AdminNav'
 import { useTranslation } from '@/lib/useTranslation'
 import { resolveUploadUrl } from '@/lib/resolveUploadUrl'
 
@@ -73,6 +74,7 @@ export default function CustomerDashboard({ customerId }: { customerId: string }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '60px 40px' }}>
+      <AdminNav trail={[t('admin.customersHeading', 'Kunder'), customer?.name]} />
       <LanguageSwitcher />
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         <div style={{ marginBottom: '60px', borderBottom: '1px solid #333', paddingBottom: '40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

@@ -293,7 +293,7 @@ export default function AdminPanel() {
             <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px' }}>{t('admin.title', 'ADMIN')}</h1>
             <p style={{ fontSize: '12px', color: '#999', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('admin.subtitle', 'Chrome Vault Studios')}</p>
           </div>
-          <button onClick={() => router.push('/')} style={{ padding: '10px 20px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.logout', 'Log ud')}</button>
+          <button onClick={() => { try { window.localStorage.removeItem('isAdmin') } catch (e) {}; router.push('/') }} style={{ padding: '10px 20px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.logout', 'Log ud')}</button>
         </div>
 
         {/* View toggle */}

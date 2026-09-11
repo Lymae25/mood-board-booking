@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import ChatWidget from './ChatWidget'
 import LanguageSwitcher from './LanguageSwitcher'
 import FileUploader from './FileUploader'
+import AdminNav from './AdminNav'
 import { useTranslation } from '@/lib/useTranslation'
 import { resolveUploadUrl } from '@/lib/resolveUploadUrl'
 
@@ -122,6 +123,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '40px' }}>
+      <AdminNav trail={[t('admin.breadcrumbProjects', 'Projekter'), project?.name]} />
       <LanguageSwitcher />
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         <button onClick={() => router.back()} style={{ ...btnGhost, marginBottom: '30px' }}>← {t('common.back', 'Tilbage')}</button>

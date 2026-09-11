@@ -89,7 +89,13 @@ export default function CustomerSelector() {
   }
 
   function checkAdminPin() {
-    if (adminPin === '1010') { router.push('/admin') } else { setError(t('selector.wrongCode', 'Forkert kode')); setTimeout(() => setError(''), 2000) }
+    if (adminPin === '1010') {
+      try { window.localStorage.setItem('isAdmin', 'true') } catch (e) {}
+      router.push('/admin')
+    } else {
+      setError(t('selector.wrongCode', 'Forkert kode'))
+      setTimeout(() => setError(''), 2000)
+    }
   }
 
   if (loading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t('common.loading', 'LOADING')}</div>
