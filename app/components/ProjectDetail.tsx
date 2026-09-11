@@ -1,393 +1,279 @@
 'use client'
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 export default function ProjectDetail({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<any>(null)
-  const [ideas, setIdeas] = useState<any[]>([])
   const [scenes, setScenes] = useState<any[]>([])
+  const [ideas, setIdeas] = useState<any[]>([])
   const [timeline, setTimeline] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('scenes')
+  const [notes, setNotes] = useState<any[]>([])
   const [selectedScene, setSelectedScene] = useState<any>(null)
-  const [sceneNotes, setSceneNotes] = useState<any[]>([])
-  const [newNote, setNewNote] = useState('')
-  const [showIdeaForm, setShowIdeaForm] = useState(false)
+  const [tab, setTab] = useState('scenes')
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+
   const [showSceneForm, setShowSceneForm] = useState(false)
+  const [sceneForm, setSceneForm] = useState({ title: '', description: '', imageUrl: '', referenceUrl: '', referenceNote: '' })
+  const [showIdeaForm, setShowIdeaForm] = useState(false)
+  const [ideaForm, setIdeaForm] = useState({ title: '', description: '', imageUrl: '', category: 'link' })
   const [showTimelineForm, setShowTimelineForm] = useState(false)
-  const [ideaForm, setIdeaForm] = useState({ title: '', description: '', category: '', imageUrl: '' })
-  const [sceneForm, setSceneForm] = useState({ title: '', description: '', imageUrl: '' })
-  const [timelineForm, setTimelineForm] = useState({ title: '', description: '', dueDate: '', status: 'pending', imageUrl: '' })
-  const [dragActive, setDragActive] = useState('')
+  const [timelineForm, setTimelineForm] = useState({ title: '', description: '', dueDate: '', status: 'pending' })
+  const [newNote, setNewNote] = useState('')
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const p = await fetch('/api/projects').then(r => r.json())
-        setProject(p.find((x: any) => x.id === projectId) || null)
-        const i = await fetch(`/api/ideas?projectId=${projectId}`).then(r => r.json())
-        setIdeas(i || [])
-        const s = await fetch(`/api/scenes?projectId=${projectId}`).then(r => r.json())
-        setScenes(s || [])
-        const t = await fetch(`/api/timeline?projectId=${projectId}`).then(r => r.json())
-        setTimeline(t || [])
-      } catch (e) { console.error('Load error:', e) }
-      setLoading(false)
-    }
-    load()
-  }, [projectId])
+  useEffect(() => { loadAll() }, [projectId])
 
-  useEffect(() => {
-    if (selectedScene) {
-      const loadNotes = async () => {
-        try {
-          const notes = await fetch(`/api/notes?sceneId=${selectedScene.id}`).then(r => r.json())
-          setSceneNotes(notes || [])
-        } catch (e) { console.error('Load notes error:', e) }
-      }
-      loadNotes()
-    }
-  }, [selectedScene])
+  async function loadAll() {
+    const [p, s, i, t] = await Promise.all([
+      fetch(`/api/projects`).then(r => r.json()),
+      fetch(`/api/scenes?projectId=${projectId}`).then(r => r.json()),
+      fetch(`/api/ideas?projectId=${projectId}`).then(r => r.json()),
+      fetch(`/api/timeline?projectId=${projectId}`).then(r => r.json())
+    ])
+    setProject(p.find((x: any) => x.id === projectId))
+    setScenes(s || [])
+    setIdeas(i || [])
+    setTimeline(t || [])
+    setLoading(false)
+  }
 
-  const handleImageUpload = (file: File, formType: 'idea' | 'scene' | 'timeline') => {
+  async function loadNotes(sceneId: string) {
+    const res = await fetch(`/api/notes?sceneId=${sceneId}`)
+    const data = await res.json()
+    setNotes(data || [])
+  }
+
+  function handleImageUpload(e: any, setter: any, form: any) {
+    const file = e.target.files?.[0]
+    if (!file) return
     const reader = new FileReader()
-    reader.onload = (e: any) => {
-      if (formType === 'idea') {
-        setIdeaForm({ ...ideaForm, imageUrl: e.target.result })
-      } else if (formType === 'scene') {
-        setSceneForm({ ...sceneForm, imageUrl: e.target.result })
-      } else {
-        setTimelineForm({ ...timelineForm, imageUrl: e.target.result })
-      }
-    }
+    reader.onload = () => { setter({ ...form, imageUrl: reader.result as string }) }
     reader.readAsDataURL(file)
   }
 
-  const handleDrag = (e: any, formType: string, active: boolean) => {
+  function handleDrop(e: any, setter: any, form: any) {
     e.preventDefault()
-    e.stopPropagation()
-    setDragActive(active ? formType : '')
+    const file = e.dataTransfer.files?.[0]
+    if (!file || !file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = () => { setter({ ...form, imageUrl: reader.result as string }) }
+    reader.readAsDataURL(file)
   }
 
-  const handleDrop = (e: any, formType: 'idea' | 'scene' | 'timeline') => {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragActive('')
-    const files = e.dataTransfer.files
-    if (files && files[0]) {
-      handleImageUpload(files[0], formType)
-    }
+  async function createScene() {
+    if (!sceneForm.title) return
+    const desc = sceneForm.referenceUrl ? `${sceneForm.description}\n\n---REF---\n${sceneForm.referenceUrl}\n${sceneForm.referenceNote}` : sceneForm.description
+    await fetch('/api/scenes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId, sceneNumber: scenes.length + 1, title: sceneForm.title, description: desc, imageUrl: sceneForm.imageUrl })
+    })
+    setSceneForm({ title: '', description: '', imageUrl: '', referenceUrl: '', referenceNote: '' })
+    setShowSceneForm(false)
+    loadAll()
   }
 
-  async function saveScene() {
-    if (!sceneForm.title) { alert('Scene title required'); return }
-    try {
-      const nextSceneNumber = Math.max(0, ...scenes.map(s => s.sceneNumber)) + 1
-      const res = await fetch('/api/scenes', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ projectId, sceneNumber: nextSceneNumber, ...sceneForm }) 
-      })
-      const newScene = await res.json()
-      setScenes([...scenes, newScene].sort((a, b) => a.sceneNumber - b.sceneNumber))
-      setSceneForm({ title: '', description: '', imageUrl: '' })
-      setShowSceneForm(false)
-    } catch (e) { console.error('saveScene error:', e); alert('Error saving scene') }
-  }
-
-  async function saveNote() {
-    if (!newNote.trim() || !selectedScene) return
-    try {
-      const res = await fetch('/api/notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sceneId: selectedScene.id, projectId, content: newNote })
-      })
-      const note = await res.json()
-      setSceneNotes([note, ...sceneNotes])
-      setNewNote('')
-    } catch (e) { console.error('saveNote error:', e) }
-  }
-
-  async function saveIdea() {
+  async function createIdea() {
     if (!ideaForm.title) return
-    try {
-      const res = await fetch('/api/ideas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId, ...ideaForm }) })
-      const newIdea = await res.json()
-      setIdeas([...ideas, newIdea])
-      setIdeaForm({ title: '', description: '', category: '', imageUrl: '' })
-      setShowIdeaForm(false)
-    } catch (e) { console.error('saveIdea error:', e) }
+    await fetch('/api/ideas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId, ...ideaForm })
+    })
+    setIdeaForm({ title: '', description: '', imageUrl: '', category: 'link' })
+    setShowIdeaForm(false)
+    loadAll()
   }
 
-  async function saveTimeline() {
-    if (!timelineForm.title || !timelineForm.dueDate) return
-    try {
-      const res = await fetch('/api/timeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId, ...timelineForm }) })
-      const newItem = await res.json()
-      setTimeline([...timeline, newItem])
-      setTimelineForm({ title: '', description: '', dueDate: '', status: 'pending', imageUrl: '' })
-      setShowTimelineForm(false)
-    } catch (e) { console.error('saveTimeline error:', e) }
+  async function createTimelineItem() {
+    if (!timelineForm.title) return
+    await fetch('/api/timeline', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId, ...timelineForm })
+    })
+    setTimelineForm({ title: '', description: '', dueDate: '', status: 'pending' })
+    setShowTimelineForm(false)
+    loadAll()
   }
 
-  if (loading) return <div style={{ padding: '40px' }}>Loading...</div>
-  if (!project) return <div style={{ padding: '40px' }}>Not found</div>
+  async function addNote() {
+    if (!newNote || !selectedScene) return
+    await fetch('/api/notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sceneId: selectedScene.id, projectId, content: newNote })
+    })
+    setNewNote('')
+    loadNotes(selectedScene.id)
+  }
 
-  const renderImageDropZone = (form: any, setForm: any, formType: 'idea' | 'scene' | 'timeline') => (
-    <div 
-      onDragEnter={(e) => handleDrag(e, formType, true)}
-      onDragLeave={(e) => handleDrag(e, formType, false)}
-      onDragOver={(e) => handleDrag(e, formType, true)}
-      onDrop={(e) => handleDrop(e, formType)}
-      style={{ 
-        marginBottom: '20px', 
-        padding: '20px', 
-        border: dragActive === formType ? '2px dashed #fff' : '2px dashed #333',
-        backgroundColor: dragActive === formType ? '#1a1a1a' : '#000',
-        cursor: 'pointer',
-        textAlign: 'center',
-        transition: 'all 0.2s'
-      }}
-    >
-      {form.imageUrl ? (
-        <div>
-          <img src={form.imageUrl} alt="preview" style={{ maxWidth: '100%', maxHeight: '150px', marginBottom: '10px' }} />
-          <p style={{ fontSize: '12px', color: '#666' }}>Drop to replace</p>
-        </div>
-      ) : (
-        <div>
-          <p style={{ color: '#999', marginBottom: '10px' }}>Drag & drop image or click</p>
-          <input 
-            type="file" 
-            accept="image/png,image/jpeg,image/gif,image/webp" 
-            onChange={(e) => e.target.files && handleImageUpload(e.target.files[0], formType)}
-            style={{ display: 'none' }}
-            id={`${formType}-image-input`}
-          />
-          <label htmlFor={`${formType}-image-input`} style={{ cursor: 'pointer', color: '#666', fontSize: '12px' }}>PNG, JPG, GIF, WebP</label>
-        </div>
-      )}
-    </div>
-  )
+  function parseSceneDesc(desc: string) {
+    if (!desc) return { text: '', refUrl: '', refNote: '' }
+    const parts = desc.split('\n\n---REF---\n')
+    if (parts.length < 2) return { text: desc, refUrl: '', refNote: '' }
+    const refLines = parts[1].split('\n')
+    return { text: parts[0], refUrl: refLines[0] || '', refNote: refLines.slice(1).join('\n') || '' }
+  }
+
+  if (loading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>LOADING</div>
+
+  const inputStyle = { width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none', marginBottom: '15px', fontFamily: 'inherit' }
+  const btnStyle = { padding: '10px 20px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' as const }
+  const btnGhost = { padding: '10px 20px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' as const }
+  const tabBtn = (active: boolean) => ({ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: active ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: active ? '900' as any : 'normal', letterSpacing: '1px', textTransform: 'uppercase' as const, borderBottom: active ? '2px solid #fff' : '2px solid transparent' })
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '40px' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        <Link href="/" style={{ color: '#999', textDecoration: 'none', marginBottom: '40px', display: 'block' }}>← Back</Link>
-        
-        <h1 style={{ fontSize: '48px', fontWeight: 'bold', marginBottom: '20px' }}>{project.name}</h1>
-        <p style={{ color: '#aaa', marginBottom: '40px', fontSize: '16px' }}>{project.description}</p>
+        <button onClick={() => router.back()} style={{ ...btnGhost, marginBottom: '30px' }}>← Tilbage</button>
 
-        <div style={{ display: 'flex', gap: '40px', marginBottom: '40px', borderBottom: '1px solid #333', paddingBottom: '20px' }}>
-          <button onClick={() => setActiveTab('scenes')} style={{ backgroundColor: 'transparent', border: 'none', color: activeTab === 'scenes' ? '#fff' : '#666', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
-            Scenes ({scenes.length})
-          </button>
-          <button onClick={() => setActiveTab('mood-board')} style={{ backgroundColor: 'transparent', border: 'none', color: activeTab === 'mood-board' ? '#fff' : '#666', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
-            Mood Board ({ideas.length})
-          </button>
-          <button onClick={() => setActiveTab('timeline')} style={{ backgroundColor: 'transparent', border: 'none', color: activeTab === 'timeline' ? '#fff' : '#666', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
-            Timeline ({timeline.length})
-          </button>
+        <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px' }}>{project?.name}</h1>
+        <p style={{ color: '#999', marginBottom: '40px' }}>{project?.description}</p>
+
+        <div style={{ borderBottom: '1px solid #333', marginBottom: '40px' }}>
+          <button onClick={() => setTab('scenes')} style={tabBtn(tab === 'scenes')}>Scener ({scenes.length})</button>
+          <button onClick={() => setTab('inspo')} style={tabBtn(tab === 'inspo')}>Inspo ({ideas.length})</button>
+          <button onClick={() => setTab('timeline')} style={tabBtn(tab === 'timeline')}>Timeline ({timeline.length})</button>
         </div>
 
-        {activeTab === 'scenes' && (
+        {tab === 'scenes' && (
           <div>
-            {!showSceneForm && (
-              <button onClick={() => setShowSceneForm(true)} style={{ padding: '12px 24px', backgroundColor: '#111', border: '1px solid #333', color: '#fff', cursor: 'pointer', marginBottom: '40px', fontWeight: 'bold' }}>
-                + Add Scene
-              </button>
-            )}
-
+            {!showSceneForm && <button onClick={() => setShowSceneForm(true)} style={{ ...btnStyle, marginBottom: '30px' }}>+ Ny Scene</button>}
             {showSceneForm && (
-              <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '30px', marginBottom: '40px' }}>
-                <div style={{ marginBottom: '20px' }}>
-                  <input type="text" placeholder="Scene Title" value={sceneForm.title} onChange={(e) => setSceneForm({ ...sceneForm, title: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} />
+              <div style={{ border: '1px solid #333', padding: '30px', marginBottom: '30px', maxWidth: '600px' }}>
+                <input placeholder="Scene titel" value={sceneForm.title} onChange={(e) => setSceneForm({ ...sceneForm, title: e.target.value })} style={inputStyle} />
+                <textarea placeholder="Beskrivelse - hvad sker der?" value={sceneForm.description} onChange={(e) => setSceneForm({ ...sceneForm, description: e.target.value })} style={{ ...inputStyle, minHeight: '80px', resize: 'none' }} />
+                <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px', marginTop: '10px' }}>Reference Link (Instagram, YouTube, TikTok...)</label>
+                <input placeholder="https://..." value={sceneForm.referenceUrl} onChange={(e) => setSceneForm({ ...sceneForm, referenceUrl: e.target.value })} style={inputStyle} />
+                <textarea placeholder="Note til reference (fx 'skal være noget ala det her')" value={sceneForm.referenceNote} onChange={(e) => setSceneForm({ ...sceneForm, referenceNote: e.target.value })} style={{ ...inputStyle, minHeight: '60px', resize: 'none' }} />
+                <div onDrop={(e) => handleDrop(e, setSceneForm, sceneForm)} onDragOver={(e) => e.preventDefault()} style={{ border: '1px dashed #333', padding: '20px', textAlign: 'center', marginBottom: '15px', cursor: 'pointer' }} onClick={() => document.getElementById('scene-file')?.click()}>
+                  {sceneForm.imageUrl ? <img src={sceneForm.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: '200px' }} /> : <span style={{ color: '#666', fontSize: '12px' }}>Drag & drop billede eller klik</span>}
+                  <input type="file" id="scene-file" accept="image/*" onChange={(e) => handleImageUpload(e, setSceneForm, sceneForm)} style={{ display: 'none' }} />
                 </div>
-                <div style={{ marginBottom: '20px' }}>
-                  <textarea placeholder="Scene Description" value={sceneForm.description} onChange={(e) => setSceneForm({ ...sceneForm, description: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px', minHeight: '80px', fontFamily: 'inherit' }} />
-                </div>
-                {renderImageDropZone(sceneForm, setSceneForm, 'scene')}
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={saveScene} style={{ padding: '12px 24px', backgroundColor: '#222', border: '1px solid #555', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>Save Scene</button>
-                  <button onClick={() => setShowSceneForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#666', cursor: 'pointer', fontSize: '14px' }}>Cancel</button>
+                  <button onClick={createScene} style={btnStyle}>Gem</button>
+                  <button onClick={() => setShowSceneForm(false)} style={btnGhost}>Annuller</button>
                 </div>
               </div>
             )}
 
-            {/* Swimlane Flowchart */}
-            <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '40px', marginBottom: '40px' }}>
-              <div style={{ display: 'flex', gap: '20px', alignItems: 'center', overflowX: 'auto', paddingBottom: '20px' }}>
-                {scenes.map((scene, idx) => (
-                  <div key={scene.id} style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <button
-                      onClick={() => setSelectedScene(scene)}
-                      style={{
-                        padding: '20px 30px',
-                        backgroundColor: selectedScene?.id === scene.id ? '#333' : '#000',
-                        border: selectedScene?.id === scene.id ? '2px solid #fff' : '1px solid #555',
-                        color: '#fff',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        minWidth: '180px',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <div style={{ fontSize: '11px', color: '#999', marginBottom: '8px' }}>SCENE {scene.sceneNumber}</div>
-                      <div style={{ fontSize: '15px' }}>{scene.title}</div>
-                    </button>
-                    {idx < scenes.length - 1 && (
-                      <div style={{ fontSize: '28px', color: '#555', marginBottom: '10px', minWidth: '30px' }}>→</div>
+            {scenes.length > 0 && (
+              <div style={{ overflowX: 'auto', paddingBottom: '20px', marginBottom: '40px', borderBottom: '1px solid #333' }}>
+                <div style={{ display: 'flex', gap: '20px', minWidth: 'min-content' }}>
+                  {scenes.map((s: any, i: number) => (
+                    <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                      <div onClick={() => { setSelectedScene(s); loadNotes(s.id) }} style={{ border: selectedScene?.id === s.id ? '2px solid #fff' : '1px solid #333', padding: '15px', cursor: 'pointer', minWidth: '150px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '10px', color: '#666', marginBottom: '5px' }}>SCENE {i + 1}</div>
+                        <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{s.title}</div>
+                      </div>
+                      {i < scenes.length - 1 && <span style={{ color: '#666', fontSize: '20px' }}>→</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedScene && (() => {
+              const parsed = parseSceneDesc(selectedScene.description)
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+                  <div style={{ border: '1px solid #333', padding: '30px' }}>
+                    <h2 style={{ fontSize: '20px', fontWeight: '900', marginBottom: '20px', textTransform: 'uppercase' }}>{selectedScene.title}</h2>
+                    {selectedScene.imageUrl && <img src={selectedScene.imageUrl} alt="" style={{ width: '100%', marginBottom: '20px' }} />}
+                    <p style={{ color: '#ccc', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{parsed.text}</p>
+                    {parsed.refUrl && (
+                      <div style={{ marginTop: '20px', padding: '20px', border: '1px solid #333' }}>
+                        <p style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>REFERENCE</p>
+                        <a href={parsed.refUrl} target="_blank" style={{ color: '#66aaff', wordBreak: 'break-all', fontSize: '12px' }}>{parsed.refUrl}</a>
+                        {parsed.refNote && <p style={{ color: '#ccc', fontSize: '13px', marginTop: '10px', fontStyle: 'italic' }}>"{parsed.refNote}"</p>}
+                      </div>
                     )}
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Scene Details with Notes */}
-            {selectedScene && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
-                {/* Scene Info */}
-                <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '40px' }}>
-                  <h2 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '20px' }}>Scene {selectedScene.sceneNumber}: {selectedScene.title}</h2>
-                  
-                  {selectedScene.imageUrl && (
-                    <img src={selectedScene.imageUrl} alt={selectedScene.title} style={{ width: '100%', maxHeight: '300px', objectFit: 'cover', marginBottom: '30px' }} />
-                  )}
-
-                  <div style={{ backgroundColor: '#000', padding: '25px', border: '1px solid #333' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px', color: '#fff' }}>What Happens</h3>
-                    <p style={{ color: '#ccc', fontSize: '15px', lineHeight: '1.8' }}>{selectedScene.description}</p>
+                  <div style={{ border: '1px solid #333', padding: '30px' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: '900', marginBottom: '20px', textTransform: 'uppercase' }}>Noter</h3>
+                    <textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Tilføj note..." style={{ ...inputStyle, minHeight: '80px', resize: 'none' }} />
+                    <button onClick={addNote} style={btnStyle}>+ Tilføj</button>
+                    <div style={{ marginTop: '30px' }}>
+                      {notes.length === 0 && <p style={{ color: '#666', fontSize: '12px' }}>Ingen noter endnu</p>}
+                      {notes.map((n: any) => (
+                        <div key={n.id} style={{ padding: '15px', borderBottom: '1px solid #222' }}>
+                          <p style={{ color: '#ccc', fontSize: '14px' }}>{n.content}</p>
+                          <p style={{ color: '#666', fontSize: '10px', marginTop: '5px' }}>{new Date(n.createdAt).toLocaleString('da-DK')}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-
-                {/* Notes */}
-                <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '40px' }}>
-                  <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '25px' }}>Notes for Scene {selectedScene.sceneNumber}</h3>
-                  
-                  {/* Add Note */}
-                  <div style={{ marginBottom: '30px' }}>
-                    <textarea
-                      value={newNote}
-                      onChange={(e) => setNewNote(e.target.value)}
-                      placeholder="Add a note... (shots, timing, ideas)"
-                      style={{ width: '100%', padding: '15px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px', minHeight: '100px', fontFamily: 'inherit', marginBottom: '10px' }}
-                    />
-                    <button onClick={saveNote} style={{ padding: '10px 20px', backgroundColor: '#222', border: '1px solid #555', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>+ Add Note</button>
-                  </div>
-
-                  {/* Notes List */}
-                  <div style={{ display: 'grid', gap: '15px' }}>
-                    {sceneNotes.map((note: any) => (
-                      <div key={note.id} style={{ backgroundColor: '#000', padding: '15px', border: '1px solid #333' }}>
-                        <p style={{ color: '#ccc', fontSize: '14px', lineHeight: '1.6', marginBottom: '8px' }}>{note.content}</p>
-                        <p style={{ fontSize: '11px', color: '#666' }}>{new Date(note.createdAt).toLocaleString()}</p>
-                      </div>
-                    ))}
-                  </div>
-                  {sceneNotes.length === 0 && !newNote && <p style={{ color: '#666', fontSize: '14px' }}>No notes yet. Add one above!</p>}
-                </div>
-              </div>
-            )}
-
-            {scenes.length === 0 && !showSceneForm && <p style={{ textAlign: 'center', color: '#666', paddingTop: '60px' }}>No scenes yet. Add your first scene!</p>}
+              )
+            })()}
           </div>
         )}
 
-        {activeTab === 'mood-board' && (
+        {tab === 'inspo' && (
           <div>
-            {!showIdeaForm && (
-              <button onClick={() => setShowIdeaForm(true)} style={{ padding: '12px 24px', backgroundColor: '#111', border: '1px solid #333', color: '#fff', cursor: 'pointer', marginBottom: '40px', fontWeight: 'bold' }}>
-                + Add Idea
-              </button>
-            )}
-
+            {!showIdeaForm && <button onClick={() => setShowIdeaForm(true)} style={{ ...btnStyle, marginBottom: '30px' }}>+ Ny Inspiration</button>}
             {showIdeaForm && (
-              <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '30px', marginBottom: '40px' }}>
-                <div style={{ marginBottom: '20px' }}>
-                  <input type="text" placeholder="Title" value={ideaForm.title} onChange={(e) => setIdeaForm({ ...ideaForm, title: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} />
+              <div style={{ border: '1px solid #333', padding: '30px', marginBottom: '30px', maxWidth: '600px' }}>
+                <input placeholder="Titel" value={ideaForm.title} onChange={(e) => setIdeaForm({ ...ideaForm, title: e.target.value })} style={inputStyle} />
+                <textarea placeholder="Note (fx 'skal være noget ala det her')" value={ideaForm.description} onChange={(e) => setIdeaForm({ ...ideaForm, description: e.target.value })} style={{ ...inputStyle, minHeight: '80px', resize: 'none' }} />
+                <input placeholder="Link (Instagram, YouTube, TikTok...)" value={ideaForm.category} onChange={(e) => setIdeaForm({ ...ideaForm, category: e.target.value })} style={inputStyle} />
+                <div onDrop={(e) => handleDrop(e, setIdeaForm, ideaForm)} onDragOver={(e) => e.preventDefault()} style={{ border: '1px dashed #333', padding: '20px', textAlign: 'center', marginBottom: '15px', cursor: 'pointer' }} onClick={() => document.getElementById('idea-file')?.click()}>
+                  {ideaForm.imageUrl ? <img src={ideaForm.imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: '200px' }} /> : <span style={{ color: '#666', fontSize: '12px' }}>Drag & drop billede eller klik (valgfrit)</span>}
+                  <input type="file" id="idea-file" accept="image/*" onChange={(e) => handleImageUpload(e, setIdeaForm, ideaForm)} style={{ display: 'none' }} />
                 </div>
-                <div style={{ marginBottom: '20px' }}>
-                  <textarea placeholder="Description" value={ideaForm.description} onChange={(e) => setIdeaForm({ ...ideaForm, description: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px', minHeight: '60px', fontFamily: 'inherit' }} />
-                </div>
-                <div style={{ marginBottom: '20px' }}>
-                  <input type="text" placeholder="Category" value={ideaForm.category} onChange={(e) => setIdeaForm({ ...ideaForm, category: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} />
-                </div>
-                {renderImageDropZone(ideaForm, setIdeaForm, 'idea')}
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={saveIdea} style={{ padding: '12px 24px', backgroundColor: '#222', border: '1px solid #555', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>Save</button>
-                  <button onClick={() => setShowIdeaForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#666', cursor: 'pointer', fontSize: '14px' }}>Cancel</button>
+                  <button onClick={createIdea} style={btnStyle}>Gem</button>
+                  <button onClick={() => setShowIdeaForm(false)} style={btnGhost}>Annuller</button>
                 </div>
               </div>
             )}
-
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-              {ideas.map((idea: any) => (
-                <div key={idea.id} style={{ backgroundColor: '#111', border: '1px solid #333', padding: '20px' }}>
-                  {idea.imageUrl && <img src={idea.imageUrl} alt={idea.title} style={{ width: '100%', height: '150px', objectFit: 'cover', marginBottom: '15px' }} />}
-                  <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px' }}>{idea.title}</h3>
-                  <p style={{ color: '#999', fontSize: '14px', marginBottom: '10px' }}>{idea.description}</p>
-                  <span style={{ fontSize: '12px', color: '#666' }}>{idea.category}</span>
+              {ideas.map((i: any) => (
+                <div key={i.id} style={{ border: '1px solid #333', padding: '20px' }}>
+                  {i.imageUrl && <img src={i.imageUrl} alt="" style={{ width: '100%', marginBottom: '15px' }} />}
+                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '10px', textTransform: 'uppercase' }}>{i.title}</h3>
+                  {i.description && <p style={{ color: '#ccc', fontSize: '13px', marginBottom: '10px', fontStyle: 'italic' }}>"{i.description}"</p>}
+                  {i.category && (i.category.startsWith('http') ? <a href={i.category} target="_blank" style={{ color: '#66aaff', fontSize: '12px', wordBreak: 'break-all' }}>{i.category}</a> : <span style={{ color: '#666', fontSize: '11px' }}>{i.category}</span>)}
                 </div>
               ))}
+              {ideas.length === 0 && !showIdeaForm && <p style={{ color: '#666', fontSize: '12px' }}>Ingen inspiration endnu</p>}
             </div>
-            {ideas.length === 0 && !showIdeaForm && <p style={{ textAlign: 'center', color: '#666', paddingTop: '60px' }}>No ideas yet</p>}
           </div>
         )}
 
-        {activeTab === 'timeline' && (
+        {tab === 'timeline' && (
           <div>
-            {!showTimelineForm && (
-              <button onClick={() => setShowTimelineForm(true)} style={{ padding: '12px 24px', backgroundColor: '#111', border: '1px solid #333', color: '#fff', cursor: 'pointer', marginBottom: '40px', fontWeight: 'bold' }}>
-                + Add Milestone
-              </button>
-            )}
-
+            {!showTimelineForm && <button onClick={() => setShowTimelineForm(true)} style={{ ...btnStyle, marginBottom: '30px' }}>+ Milestone</button>}
             {showTimelineForm && (
-              <div style={{ backgroundColor: '#111', border: '1px solid #333', padding: '30px', marginBottom: '40px' }}>
-                <div style={{ marginBottom: '20px' }}>
-                  <input type="text" placeholder="Title" value={timelineForm.title} onChange={(e) => setTimelineForm({ ...timelineForm, title: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} />
-                </div>
-                <div style={{ marginBottom: '20px' }}>
-                  <textarea placeholder="Description" value={timelineForm.description} onChange={(e) => setTimelineForm({ ...timelineForm, description: e.target.value })} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px', minHeight: '60px', fontFamily: 'inherit' }} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '8px' }}>Due Date</label>
-                    <input type="date" value={timelineForm.dueDate} onChange={(e) => setTimelineForm({ ...timelineForm, dueDate: e.target.value })} style={{ width: '100%', padding: '12px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '8px' }}>Status</label>
-                    <select value={timelineForm.status} onChange={(e) => setTimelineForm({ ...timelineForm, status: e.target.value })} style={{ width: '100%', padding: '12px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px', cursor: 'pointer' }}>
-                      <option value="pending">Pending</option>
-                      <option value="in-progress">In Progress</option>
-                      <option value="completed">Completed</option>
-                    </select>
-                  </div>
-                </div>
-                {renderImageDropZone(timelineForm, setTimelineForm, 'timeline')}
+              <div style={{ border: '1px solid #333', padding: '30px', marginBottom: '30px', maxWidth: '600px' }}>
+                <input placeholder="Titel" value={timelineForm.title} onChange={(e) => setTimelineForm({ ...timelineForm, title: e.target.value })} style={inputStyle} />
+                <textarea placeholder="Beskrivelse" value={timelineForm.description} onChange={(e) => setTimelineForm({ ...timelineForm, description: e.target.value })} style={{ ...inputStyle, minHeight: '60px', resize: 'none' }} />
+                <input type="date" value={timelineForm.dueDate} onChange={(e) => setTimelineForm({ ...timelineForm, dueDate: e.target.value })} style={inputStyle} />
+                <select value={timelineForm.status} onChange={(e) => setTimelineForm({ ...timelineForm, status: e.target.value })} style={inputStyle}>
+                  <option value="pending">Pending</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="done">Done</option>
+                </select>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={saveTimeline} style={{ padding: '12px 24px', backgroundColor: '#222', border: '1px solid #555', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>Save</button>
-                  <button onClick={() => setShowTimelineForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#666', cursor: 'pointer', fontSize: '14px' }}>Cancel</button>
+                  <button onClick={createTimelineItem} style={btnStyle}>Gem</button>
+                  <button onClick={() => setShowTimelineForm(false)} style={btnGhost}>Annuller</button>
                 </div>
               </div>
             )}
-
-            <div style={{ display: 'grid', gap: '20px' }}>
-              {timeline.map((item: any) => (
-                <div key={item.id} style={{ backgroundColor: '#111', border: '1px solid #333', padding: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 'bold' }}>{item.title}</h3>
-                    <span style={{ fontSize: '12px', border: '1px solid #666', padding: '4px 8px', color: '#999' }}>{item.status}</span>
+            <div>
+              {timeline.map((t: any) => (
+                <div key={t.id} style={{ border: '1px solid #333', padding: '20px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h3 style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '5px' }}>{t.title}</h3>
+                    <p style={{ color: '#999', fontSize: '12px' }}>{t.description}</p>
+                    <p style={{ color: '#666', fontSize: '11px', marginTop: '5px' }}>{t.dueDate}</p>
                   </div>
-                  <p style={{ color: '#999', fontSize: '14px', marginBottom: '10px' }}>{item.description}</p>
-                  <p style={{ fontSize: '12px', color: '#666', marginBottom: '15px' }}>Due: {new Date(item.dueDate).toLocaleDateString()}</p>
-                  {item.imageUrl && <img src={item.imageUrl} alt={item.title} style={{ width: '100%', height: '200px', objectFit: 'cover' }} />}
+                  <span style={{ fontSize: '10px', color: '#999', border: '1px solid #333', padding: '4px 10px', textTransform: 'uppercase' }}>{t.status}</span>
                 </div>
               ))}
+              {timeline.length === 0 && !showTimelineForm && <p style={{ color: '#666', fontSize: '12px' }}>Ingen milestones endnu</p>}
             </div>
-            {timeline.length === 0 && !showTimelineForm && <p style={{ textAlign: 'center', color: '#666', paddingTop: '60px' }}>No milestones yet</p>}
           </div>
         )}
       </div>
