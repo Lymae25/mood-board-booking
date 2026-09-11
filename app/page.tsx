@@ -1,5 +1,2 @@
-import Dashboard from './components/Dashboard'
-
-export default function Home() {
-  return <Dashboard />
-}
+import CustomerSelector from './components/CustomerSelector'
+export default function Home() { return <CustomerSelector /> }

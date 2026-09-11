@@ -14,7 +14,8 @@ export function getDb() {
 export async function initDB() {
   try {
     const sql = getDb()
-    await sql`CREATE TABLE IF NOT EXISTS projects ("id" TEXT PRIMARY KEY, "name" TEXT NOT NULL, "description" TEXT, "clientName" TEXT, "logoUrl" TEXT, "status" TEXT, "startDate" TEXT, "endDate" TEXT, "createdAt" TEXT)`
+    await sql`CREATE TABLE IF NOT EXISTS customers ("id" TEXT PRIMARY KEY, "name" TEXT NOT NULL, "logoUrl" TEXT, "pin" TEXT NOT NULL, "createdAt" TEXT)`
+    await sql`CREATE TABLE IF NOT EXISTS projects ("id" TEXT PRIMARY KEY, "customerId" TEXT, "name" TEXT NOT NULL, "description" TEXT, "clientName" TEXT, "logoUrl" TEXT, "status" TEXT, "startDate" TEXT, "endDate" TEXT, "createdAt" TEXT)`
     await sql`CREATE TABLE IF NOT EXISTS scenes ("id" TEXT PRIMARY KEY, "projectId" TEXT NOT NULL, "sceneNumber" INTEGER, "title" TEXT NOT NULL, "description" TEXT, "imageUrl" TEXT, "createdAt" TEXT)`
     await sql`CREATE TABLE IF NOT EXISTS sceneNotes ("id" TEXT PRIMARY KEY, "sceneId" TEXT NOT NULL, "projectId" TEXT NOT NULL, "content" TEXT NOT NULL, "createdAt" TEXT)`
     await sql`CREATE TABLE IF NOT EXISTS ideas ("id" TEXT PRIMARY KEY, "projectId" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "imageUrl" TEXT, "category" TEXT, "createdAt" TEXT)`
@@ -22,14 +23,57 @@ export async function initDB() {
   } catch (e) { console.error('DB init error:', e) }
 }
 
+export async function getCustomers() {
+  try { const sql = getDb(); return await sql`SELECT "id", "name", "logoUrl" FROM customers ORDER BY "name" ASC` } catch (e) { return [] }
+}
+
+export async function getAllCustomers() {
+  try { const sql = getDb(); return await sql`SELECT * FROM customers ORDER BY "name" ASC` } catch (e) { return [] }
+}
+
+export async function createCustomer(data: any) {
+  const sql = getDb()
+  const id = Date.now().toString()
+  await sql`INSERT INTO customers ("id", "name", "logoUrl", "pin", "createdAt") VALUES (${id}, ${data.name}, ${data.logoUrl || ''}, ${data.pin}, ${new Date().toISOString()})`
+  return { id, ...data, createdAt: new Date().toISOString() }
+}
+
+export async function deleteCustomer(customerId: string) {
+  try {
+    const sql = getDb()
+    const projects = await sql`SELECT "id" FROM projects WHERE "customerId" = ${customerId}`
+    for (const p of projects) {
+      await sql`DELETE FROM scenes WHERE "projectId" = ${p.id}`
+      await sql`DELETE FROM sceneNotes WHERE "projectId" = ${p.id}`
+      await sql`DELETE FROM ideas WHERE "projectId" = ${p.id}`
+      await sql`DELETE FROM timeline WHERE "projectId" = ${p.id}`
+    }
+    await sql`DELETE FROM projects WHERE "customerId" = ${customerId}`
+    await sql`DELETE FROM customers WHERE "id" = ${customerId}`
+    return true
+  } catch (e) { console.error('deleteCustomer error:', e); return false }
+}
+
+export async function verifyPin(customerId: string, pin: string) {
+  try {
+    const sql = getDb()
+    const result = await sql`SELECT * FROM customers WHERE "id" = ${customerId} AND "pin" = ${pin}`
+    return result.length > 0
+  } catch (e) { return false }
+}
+
 export async function getProjects() {
   try { const sql = getDb(); return await sql`SELECT * FROM projects ORDER BY "createdAt" DESC` } catch (e) { return [] }
+}
+
+export async function getProjectsByCustomer(customerId: string) {
+  try { const sql = getDb(); return await sql`SELECT * FROM projects WHERE "customerId" = ${customerId} ORDER BY "createdAt" DESC` } catch (e) { return [] }
 }
 
 export async function createProject(data: any) {
   const sql = getDb()
   const id = Date.now().toString()
-  await sql`INSERT INTO projects ("id", "name", "description", "clientName", "logoUrl", "status", "startDate", "endDate", "createdAt") VALUES (${id}, ${data.name}, ${data.description || ''}, ${data.clientName || ''}, ${data.logoUrl || ''}, ${data.status}, ${data.startDate || ''}, ${data.endDate || ''}, ${new Date().toISOString()})`
+  await sql`INSERT INTO projects ("id", "customerId", "name", "description", "clientName", "logoUrl", "status", "startDate", "endDate", "createdAt") VALUES (${id}, ${data.customerId || ''}, ${data.name}, ${data.description || ''}, ${data.clientName || ''}, ${data.logoUrl || ''}, ${data.status}, ${data.startDate || ''}, ${data.endDate || ''}, ${new Date().toISOString()})`
   return { id, ...data, createdAt: new Date().toISOString() }
 }
 
