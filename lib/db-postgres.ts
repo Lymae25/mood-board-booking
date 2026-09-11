@@ -38,6 +38,14 @@ export async function createCustomer(data: any) {
   return { id, ...data, createdAt: new Date().toISOString() }
 }
 
+export async function updateCustomerPin(customerId: string, newPin: string) {
+  try {
+    const sql = getDb()
+    await sql`UPDATE customers SET "pin" = ${newPin} WHERE "id" = ${customerId}`
+    return true
+  } catch (e) { return false }
+}
+
 export async function deleteCustomer(customerId: string) {
   try {
     const sql = getDb()
