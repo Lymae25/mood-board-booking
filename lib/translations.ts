@@ -148,7 +148,10 @@ export const translations: Record<Language, TranslationTree> = {
       title: 'Besked til Admin',
       typeMessage: 'Skriv en besked...',
       tagScene: 'Tag en scene (valgfri)',
-      emptyState: 'Skriv til admin herunder'
+      emptyState: 'Skriv til admin herunder',
+      attachImage: 'Billede',
+      typingTemplate: '{name} skriver...',
+      launcherLabel: 'Chat'
     },
     upload: {
       dragDrop: 'Drag & drop fil eller klik',
@@ -300,7 +303,10 @@ export const translations: Record<Language, TranslationTree> = {
       title: 'Message to Admin',
       typeMessage: 'Type a message...',
       tagScene: 'Tag a scene (optional)',
-      emptyState: 'Write to admin below'
+      emptyState: 'Write to admin below',
+      attachImage: 'Image',
+      typingTemplate: '{name} is typing...',
+      launcherLabel: 'Chat'
     },
     upload: {
       dragDrop: 'Drag & drop file or click',
@@ -452,7 +458,10 @@ export const translations: Record<Language, TranslationTree> = {
       title: 'Mensahe sa Admin',
       typeMessage: 'Mag-type ng mensahe...',
       tagScene: 'Mag-tag ng eksena (opsyonal)',
-      emptyState: 'Sumulat sa admin sa ibaba'
+      emptyState: 'Sumulat sa admin sa ibaba',
+      attachImage: 'Larawan',
+      typingTemplate: 'Nagta-type si {name}...',
+      launcherLabel: 'Chat'
     },
     upload: {
       dragDrop: 'I-drag & drop ang file o i-click',

@@ -22,6 +22,7 @@ export async function initDB() {
     await sql`CREATE TABLE IF NOT EXISTS ideas ("id" TEXT PRIMARY KEY, "projectId" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "imageUrl" TEXT, "category" TEXT, "createdAt" TEXT)`
     await sql`CREATE TABLE IF NOT EXISTS timeline ("id" TEXT PRIMARY KEY, "projectId" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "dueDate" TEXT, "status" TEXT, "imageUrl" TEXT, "createdAt" TEXT)`
     await sql`CREATE TABLE IF NOT EXISTS messages ("id" TEXT PRIMARY KEY, "customerId" TEXT NOT NULL, "sender" TEXT NOT NULL, "content" TEXT NOT NULL, "sceneRef" TEXT, "projectRef" TEXT, "readByAdmin" BOOLEAN DEFAULT FALSE, "readByCustomer" BOOLEAN DEFAULT FALSE, "createdAt" TEXT)`
+    await sql`ALTER TABLE messages ADD COLUMN IF NOT EXISTS "imageUrl" TEXT`
     await sql`CREATE TABLE IF NOT EXISTS meetings ("id" TEXT PRIMARY KEY, "customerId" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "meetingDate" TEXT NOT NULL, "meetingTime" TEXT NOT NULL, "duration" INTEGER, "meetingType" TEXT, "location" TEXT, "createdAt" TEXT)`
   } catch (e) { console.error('DB init error:', e) }
 }
@@ -167,8 +168,8 @@ export async function createMessage(data: any) {
   const readByAdmin = sender === 'admin'
   const readByCustomer = sender === 'customer'
   const createdAt = new Date().toISOString()
-  await sql`INSERT INTO messages ("id", "customerId", "sender", "content", "sceneRef", "projectRef", "readByAdmin", "readByCustomer", "createdAt") VALUES (${id}, ${data.customerId}, ${sender}, ${data.content}, ${data.sceneRef || null}, ${data.projectRef || null}, ${readByAdmin}, ${readByCustomer}, ${createdAt})`
-  return { id, customerId: data.customerId, sender, content: data.content, sceneRef: data.sceneRef || null, projectRef: data.projectRef || null, readByAdmin, readByCustomer, createdAt }
+  await sql`INSERT INTO messages ("id", "customerId", "sender", "content", "sceneRef", "projectRef", "readByAdmin", "readByCustomer", "imageUrl", "createdAt") VALUES (${id}, ${data.customerId}, ${sender}, ${data.content || ''}, ${data.sceneRef || null}, ${data.projectRef || null}, ${readByAdmin}, ${readByCustomer}, ${data.imageUrl || null}, ${createdAt})`
+  return { id, customerId: data.customerId, sender, content: data.content || '', sceneRef: data.sceneRef || null, projectRef: data.projectRef || null, readByAdmin, readByCustomer, imageUrl: data.imageUrl || null, createdAt }
 }
 
 export async function markMessagesRead(customerId: string, reader: 'admin' | 'customer') {

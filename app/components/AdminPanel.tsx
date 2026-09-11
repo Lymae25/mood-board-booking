@@ -1,11 +1,15 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import StatusBadge, { STATUSES } from './StatusBadge'
 import LanguageSwitcher from './LanguageSwitcher'
 import FileUploader from './FileUploader'
+import TypingIndicator from './TypingIndicator'
 import { useTranslation } from '@/lib/useTranslation'
+
+const TYPING_THROTTLE_MS = 2000
+const TYPING_POLL_MS = 2000
 
 const MEETING_TYPES = [
   { key: 'coffee', labelKey: 'admin.meetingTypeCoffee', label: 'Kaffemøde', color: '#f97316' },
@@ -44,6 +48,11 @@ export default function AdminPanel() {
   const [meetings, setMeetings] = useState<any[]>([])
   const [showMeetingForm, setShowMeetingForm] = useState(false)
   const [meetingForm, setMeetingForm] = useState({ customerId: '', title: '', description: '', meetingDate: '', meetingTime: '', duration: '60', meetingType: 'coffee', location: '' })
+  const [replyImage, setReplyImage] = useState('')
+  const [replyImageUploading, setReplyImageUploading] = useState(false)
+  const [customerTyping, setCustomerTyping] = useState(false)
+  const replyAttachInputRef = useRef<HTMLInputElement>(null)
+  const lastTypingSentRef = useRef(0)
   const { t } = useTranslation()
 
   useEffect(() => { loadData() }, [])
@@ -58,6 +67,29 @@ export default function AdminPanel() {
     if (chatParam) openConversation(chatParam)
   }, [chatParam])
 
+  useEffect(() => {
+    if (!selectedCustomerId) return
+    checkTyping(selectedCustomerId)
+    const iv = setInterval(() => checkTyping(selectedCustomerId), TYPING_POLL_MS)
+    return () => clearInterval(iv)
+  }, [selectedCustomerId])
+
+  async function checkTyping(customerId: string) {
+    try {
+      const res = await fetch(`/api/typing?customerId=${customerId}`)
+      const data = await res.json()
+      setCustomerTyping(!!data.customerTyping)
+    } catch (e) {}
+  }
+
+  function notifyTyping() {
+    if (!selectedCustomerId) return
+    const now = Date.now()
+    if (now - lastTypingSentRef.current < TYPING_THROTTLE_MS) return
+    lastTypingSentRef.current = now
+    fetch('/api/typing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customerId: selectedCustomerId, sender: 'admin' }) }).catch(() => {})
+  }
+
   async function loadMessages() {
     const res = await fetch('/api/messages?admin=1010')
     const data = await res.json()
@@ -70,11 +102,27 @@ export default function AdminPanel() {
     setMessages(prev => prev.map(m => m.customerId === customerId && m.sender === 'customer' ? { ...m, readByAdmin: true } : m))
   }
 
+  async function handleReplyAttach(e: any) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setReplyImageUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (res.ok && data.url) setReplyImage(data.url)
+    } catch (e) {}
+    setReplyImageUploading(false)
+    if (replyAttachInputRef.current) replyAttachInputRef.current.value = ''
+  }
+
   async function sendReply() {
-    if (!reply.trim() || !selectedCustomerId || sendingReply) return
+    if ((!reply.trim() && !replyImage) || !selectedCustomerId || sendingReply) return
     setSendingReply(true)
-    await fetch('/api/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customerId: selectedCustomerId, sender: 'admin', content: reply.trim() }) })
+    await fetch('/api/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customerId: selectedCustomerId, sender: 'admin', content: reply.trim(), imageUrl: replyImage || null }) })
     setReply('')
+    setReplyImage('')
     setSendingReply(false)
     loadMessages()
   }
@@ -490,7 +538,7 @@ export default function AdminPanel() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>{c.name}</p>
-                        <p style={{ fontSize: '11px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{last ? `${last.sender === 'admin' ? t('admin.youPrefix', 'Dig:') + ' ' : ''}${last.content}` : t('admin.noMessagesYet', 'Ingen beskeder endnu')}</p>
+                        <p style={{ fontSize: '11px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{last ? `${last.sender === 'admin' ? t('admin.youPrefix', 'Dig:') + ' ' : ''}${last.content || t('chat.attachImage', 'Billede')}` : t('admin.noMessagesYet', 'Ingen beskeder endnu')}</p>
                       </div>
                       {unread > 0 && <span style={{ backgroundColor: '#ff6666', color: '#fff', fontSize: '10px', fontWeight: 'bold', minWidth: '20px', height: '20px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px', flexShrink: 0 }}>{unread}</span>}
                     </div>
@@ -521,22 +569,46 @@ export default function AdminPanel() {
                               {[m.projectRef, m.sceneRef].filter(Boolean).join(' · ')}
                             </p>
                           )}
-                          <div style={{ padding: '10px 14px', backgroundColor: m.sender === 'admin' ? '#fff' : 'transparent', color: m.sender === 'admin' ? '#000' : '#fff', border: m.sender === 'admin' ? 'none' : '1px solid #333', fontSize: '13px', lineHeight: '1.5', wordBreak: 'break-word' }}>
-                            {m.content}
-                          </div>
+                          {m.imageUrl && (
+                            <a href={m.imageUrl} target="_blank" rel="noreferrer" style={{ display: 'block', marginBottom: m.content ? '6px' : 0 }}>
+                              <img src={m.imageUrl} alt="" style={{ maxWidth: '300px', maxHeight: '300px', display: 'block', border: m.sender === 'admin' ? 'none' : '1px solid #333' }} />
+                            </a>
+                          )}
+                          {m.content && (
+                            <div style={{ padding: '10px 14px', backgroundColor: m.sender === 'admin' ? '#fff' : 'transparent', color: m.sender === 'admin' ? '#000' : '#fff', border: m.sender === 'admin' ? 'none' : '1px solid #333', fontSize: '13px', lineHeight: '1.5', wordBreak: 'break-word' }}>
+                              {m.content}
+                            </div>
+                          )}
                           <p style={{ fontSize: '9px', color: '#666', marginTop: '4px', textAlign: m.sender === 'admin' ? 'right' : 'left' }}>{new Date(m.createdAt).toLocaleString('da-DK')}</p>
                         </div>
                       ))}
                     </div>
-                    <div style={{ padding: '16px 20px', borderTop: '1px solid #333', display: 'flex', gap: '10px' }}>
-                      <textarea
-                        value={reply}
-                        onChange={(e) => setReply(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply() } }}
-                        placeholder={t('admin.typeReplyPlaceholder', 'Skriv et svar...')}
-                        style={{ flex: 1, resize: 'none', minHeight: '40px', maxHeight: '100px', padding: '10px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }}
-                      />
-                      <button onClick={sendReply} disabled={sendingReply || !reply.trim()} style={{ padding: '0 20px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', opacity: sendingReply || !reply.trim() ? 0.5 : 1 }}>{t('common.send', 'Send')}</button>
+                    <div style={{ padding: '16px 20px', borderTop: '1px solid #333' }}>
+                      {customerTyping && <TypingIndicator label={t('chat.typingTemplate', '{name} skriver...').replace('{name}', activeCustomer?.name || '')} />}
+                      {(replyImage || replyImageUploading) && (
+                        <div style={{ marginBottom: '10px' }}>
+                          {replyImageUploading ? (
+                            <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('upload.uploadingLabel', 'Uploader...')}</p>
+                          ) : (
+                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                              <img src={replyImage} alt="" style={{ maxHeight: '70px', maxWidth: '110px', display: 'block', border: '1px solid #333' }} />
+                              <button onClick={() => setReplyImage('')} style={{ position: 'absolute', top: '-8px', right: '-8px', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#fff', color: '#000', border: 'none', cursor: 'pointer', fontSize: '12px', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>×</button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <textarea
+                          value={reply}
+                          onChange={(e) => { setReply(e.target.value); notifyTyping() }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply() } }}
+                          placeholder={t('admin.typeReplyPlaceholder', 'Skriv et svar...')}
+                          style={{ flex: 1, resize: 'none', minHeight: '40px', maxHeight: '100px', padding: '10px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }}
+                        />
+                        <button type="button" onClick={() => replyAttachInputRef.current?.click()} title={t('chat.attachImage', 'Billede')} style={{ width: '40px', padding: 0, backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }}>+</button>
+                        <input ref={replyAttachInputRef} type="file" accept="image/*" onChange={handleReplyAttach} style={{ display: 'none' }} />
+                        <button onClick={sendReply} disabled={sendingReply || (!reply.trim() && !replyImage)} style={{ padding: '0 20px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', opacity: sendingReply || (!reply.trim() && !replyImage) ? 0.5 : 1 }}>{t('common.send', 'Send')}</button>
+                      </div>
                     </div>
                   </>
                 )

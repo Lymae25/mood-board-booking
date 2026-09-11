@@ -24,7 +24,9 @@ export async function POST(request: NextRequest) {
   try {
     await initDB()
     const data = await request.json()
-    if (!data.customerId || !data.content) return NextResponse.json({ error: 'customerId and content required' }, { status: 400 })
+    if (!data.customerId || (!data.content && !data.imageUrl)) {
+      return NextResponse.json({ error: 'customerId and content or imageUrl required' }, { status: 400 })
+    }
     const message = await createMessage(data)
 
     // Notify admin by email when a customer messages in. The message is
@@ -37,7 +39,7 @@ export async function POST(request: NextRequest) {
           customerId: data.customerId,
           customerName: customer?.name || 'Ukendt kunde',
           customerLogoUrl: customer?.logoUrl,
-          content: message.content,
+          content: message.content || (message.imageUrl ? '[Billede]' : ''),
           sceneRef: message.sceneRef,
           projectRef: message.projectRef
         })
