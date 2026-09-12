@@ -101,7 +101,7 @@ export default function CustomerSelector() {
   if (loading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t('common.loading', 'LOADING')}</div>
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+    <div className="cs-page" style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
       <LanguageSwitcher />
       <style>{`
         @keyframes float-1 { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
@@ -127,12 +127,30 @@ export default function CustomerSelector() {
         .falling {
           animation: fall-anim 1.5s cubic-bezier(0.55, 0.05, 0.6, 0.95) forwards !important;
         }
+
+        /* ---------- Mobile (< 768px) ---------- */
+        @media (max-width: 767px) {
+          .cs-page { padding: 40px 20px !important; }
+          .cs-title { font-size: 34px !important; margin-bottom: 12px !important; }
+          .cs-subtitle { margin-bottom: 44px !important; }
+          .cs-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 24px !important;
+            margin-bottom: 48px !important;
+          }
+          .cs-circle { width: 120px !important; height: 120px !important; }
+          .cs-name { font-size: 12px !important; }
+          .cs-admin-btn { width: 100%; max-width: 320px; min-height: 48px; }
+          .cs-admin-pin-wrap { width: 100%; max-width: 320px; }
+          .cs-admin-pin-input { width: 100% !important; min-height: 48px; }
+          .cs-login-btn { width: 100%; min-height: 48px; }
+        }
       `}</style>
 
-      <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', marginBottom: '20px', textTransform: 'uppercase', opacity: selectedId ? 0 : 1, transition: 'opacity 0.6s' }}>{t('selector.title', 'MOOD BOARD')}</h1>
-      <p style={{ fontSize: '14px', color: '#999', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '80px', opacity: selectedId ? 0 : 1, transition: 'opacity 0.6s' }}>{t('selector.subtitle', 'Vælg bruger')}</p>
+      <h1 className="cs-title" style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', marginBottom: '20px', textTransform: 'uppercase', opacity: selectedId ? 0 : 1, transition: 'opacity 0.6s' }}>{t('selector.title', 'MOOD BOARD')}</h1>
+      <p className="cs-subtitle" style={{ fontSize: '14px', color: '#999', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '80px', opacity: selectedId ? 0 : 1, transition: 'opacity 0.6s' }}>{t('selector.subtitle', 'Vælg bruger')}</p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '40px', maxWidth: '1200px', width: '100%', marginBottom: '80px' }}>
+      <div className="cs-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '40px', maxWidth: '1200px', width: '100%', marginBottom: '80px' }}>
         {customers.map((c: any, idx: number) => {
           const isNervous = hoveredId === c.id && !selectedId
           const isFalling = selectedId !== null && selectedId !== c.id
@@ -165,6 +183,7 @@ export default function CustomerSelector() {
               } as any}
             >
               <div
+                className="cs-circle"
                 style={{
                   width: '160px',
                   height: '160px',
@@ -183,21 +202,33 @@ export default function CustomerSelector() {
               >
                 {c.logoUrl ? <img src={resolveUploadUrl(c.logoUrl)} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '48px', color: '#666' }}>{c.name.charAt(0)}</span>}
               </div>
-              <p style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', opacity: isFalling ? 0 : 1, transition: 'opacity 0.4s' }}>{c.name}</p>
+              <p className="cs-name" style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', opacity: isFalling ? 0 : 1, transition: 'opacity 0.4s' }}>{c.name}</p>
             </div>
           )
         })}
       </div>
 
-      {customers.length === 0 && <p style={{ color: '#666', marginBottom: '40px' }}>{t('selector.noUsers', 'Ingen brugere endnu. Login som admin for at oprette.')}</p>}
+      {customers.length === 0 && <p style={{ color: '#666', marginBottom: '40px', textAlign: 'center' }}>{t('selector.noUsers', 'Ingen brugere endnu. Login som admin for at oprette.')}</p>}
 
-      {!showAdminPin && !selectedId && <button onClick={() => setShowAdminPin(true)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('selector.adminLogin', 'Admin Login')}</button>}
+      {!showAdminPin && !selectedId && <button className="cs-admin-btn" onClick={() => setShowAdminPin(true)} style={{ padding: '14px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '12px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('selector.adminLogin', 'Admin Login')}</button>}
 
       {showAdminPin && !selectedId && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-          <input type="password" value={adminPin} onChange={(e) => setAdminPin(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && checkAdminPin()} maxLength={4} placeholder={t('selector.adminPinPlaceholder', 'Admin PIN')} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', fontSize: '18px', textAlign: 'center', letterSpacing: '8px', width: '200px' }} autoFocus />
+        <div className="cs-admin-pin-wrap" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+          <input
+            className="cs-admin-pin-input"
+            type="password"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={adminPin}
+            onChange={(e) => setAdminPin(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && checkAdminPin()}
+            maxLength={4}
+            placeholder={t('selector.adminPinPlaceholder', 'Admin PIN')}
+            style={{ padding: '14px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', fontSize: '18px', textAlign: 'center', letterSpacing: '8px', width: '200px' }}
+            autoFocus
+          />
           {error && <p style={{ color: '#ff6666', fontSize: '12px' }}>{error}</p>}
-          <button onClick={checkAdminPin} style={{ padding: '10px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('selector.loginButton', 'Login')}</button>
+          <button className="cs-login-btn" onClick={checkAdminPin} style={{ padding: '14px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('selector.loginButton', 'Login')}</button>
         </div>
       )}
 

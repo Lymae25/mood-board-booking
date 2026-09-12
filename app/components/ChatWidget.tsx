@@ -109,14 +109,30 @@ export default function ChatWidget({ customerId, projectName, scenes }: { custom
 
   return (
     <div style={{ position: 'fixed', bottom: '30px', right: '30px', zIndex: 1000, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+      <style>{`
+        @media (max-width: 767px) {
+          .cw-panel {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            max-height: none !important;
+            margin: 0 !important;
+            border: none !important;
+          }
+          .cw-panel-header { padding-top: max(16px, env(safe-area-inset-top)) !important; }
+          .cw-panel-input { padding-bottom: max(14px, env(safe-area-inset-bottom)) !important; }
+          .cw-launcher { width: 64px !important; height: 64px !important; bottom: max(20px, env(safe-area-inset-bottom)) !important; }
+        }
+      `}</style>
       {open && (
-        <div style={{ width: '340px', height: '460px', backgroundColor: '#000', border: '1px solid #333', display: 'flex', flexDirection: 'column', marginBottom: '15px', boxShadow: '0 0 40px rgba(0,0,0,0.6)' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="cw-panel" style={{ width: '340px', height: '460px', backgroundColor: '#000', border: '1px solid #333', display: 'flex', flexDirection: 'column', marginBottom: '15px', boxShadow: '0 0 40px rgba(0,0,0,0.6)' }}>
+          <div className="cw-panel-header" style={{ padding: '16px 20px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <p style={{ fontSize: '12px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('chat.title', 'Besked til Admin')}</p>
               {projectName && <p style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>{projectName}</p>}
             </div>
-            <button onClick={() => setOpen(false)} style={{ background: 'transparent', border: 'none', color: '#999', fontSize: '18px', cursor: 'pointer', lineHeight: 1 }}>×</button>
+            <button onClick={() => setOpen(false)} style={{ background: 'transparent', border: 'none', color: '#999', fontSize: '22px', cursor: 'pointer', lineHeight: 1, minWidth: '44px', minHeight: '44px' }}>×</button>
           </div>
 
           <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -143,10 +159,10 @@ export default function ChatWidget({ customerId, projectName, scenes }: { custom
             ))}
           </div>
 
-          <div style={{ padding: '14px 20px', borderTop: '1px solid #333' }}>
+          <div className="cw-panel-input" style={{ padding: '14px 20px', borderTop: '1px solid #333' }}>
             {adminTyping && <TypingIndicator label={t('chat.typingTemplate', '{name} skriver...').replace('{name}', 'Chrome Vault')} />}
             {scenes && scenes.length > 0 && (
-              <select value={taggedScene} onChange={(e) => setTaggedScene(e.target.value)} style={{ width: '100%', padding: '8px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: taggedScene ? '#fff' : '#666', fontSize: '11px', outline: 'none', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <select value={taggedScene} onChange={(e) => setTaggedScene(e.target.value)} style={{ width: '100%', padding: '10px 0', minHeight: '40px', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: taggedScene ? '#fff' : '#666', fontSize: '14px', outline: 'none', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 <option value="" style={{ backgroundColor: '#000' }}>{t('chat.tagScene', 'Tag en scene (valgfri)')}</option>
                 {scenes.map(s => <option key={s.id} value={s.id} style={{ backgroundColor: '#000' }}>{s.title}</option>)}
               </select>
@@ -158,7 +174,7 @@ export default function ChatWidget({ customerId, projectName, scenes }: { custom
                 ) : (
                   <div style={{ position: 'relative', display: 'inline-block' }}>
                     <img src={resolveUploadUrl(attachedImage)} alt="" style={{ maxHeight: '70px', maxWidth: '110px', display: 'block', border: '1px solid #333' }} />
-                    <button onClick={() => setAttachedImage('')} style={{ position: 'absolute', top: '-8px', right: '-8px', width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#fff', color: '#000', border: 'none', cursor: 'pointer', fontSize: '12px', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>×</button>
+                    <button onClick={() => setAttachedImage('')} style={{ position: 'absolute', top: '-8px', right: '-8px', width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#fff', color: '#000', border: 'none', cursor: 'pointer', fontSize: '13px', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>×</button>
                   </div>
                 )}
               </div>
@@ -169,17 +185,18 @@ export default function ChatWidget({ customerId, projectName, scenes }: { custom
                 onChange={(e) => { setInput(e.target.value); notifyTyping() }}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
                 placeholder={t('chat.typeMessage', 'Skriv en besked...')}
-                style={{ flex: 1, resize: 'none', minHeight: '38px', maxHeight: '80px', padding: '8px 10px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }}
+                style={{ flex: 1, resize: 'none', minHeight: '44px', maxHeight: '80px', padding: '10px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none', fontFamily: 'inherit' }}
               />
-              <button type="button" onClick={() => attachInputRef.current?.click()} title={t('chat.attachImage', 'Billede')} style={{ width: '38px', padding: 0, backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }}>+</button>
+              <button type="button" onClick={() => attachInputRef.current?.click()} title={t('chat.attachImage', 'Billede')} style={{ width: '44px', minHeight: '44px', padding: 0, backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '18px', lineHeight: 1, flexShrink: 0 }}>+</button>
               <input ref={attachInputRef} type="file" accept="image/*" onChange={handleAttach} style={{ display: 'none' }} />
-              <button onClick={send} disabled={sending || (!input.trim() && !attachedImage)} style={{ padding: '0 18px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: sending ? 'default' : 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', opacity: sending || (!input.trim() && !attachedImage) ? 0.5 : 1 }}>{t('common.send', 'Send')}</button>
+              <button onClick={send} disabled={sending || (!input.trim() && !attachedImage)} style={{ padding: '0 18px', minHeight: '44px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: sending ? 'default' : 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', opacity: sending || (!input.trim() && !attachedImage) ? 0.5 : 1, flexShrink: 0 }}>{t('common.send', 'Send')}</button>
             </div>
           </div>
         </div>
       )}
 
       <button
+        className="cw-launcher"
         onClick={() => setOpen(o => !o)}
         style={{ width: '58px', height: '58px', borderRadius: '50%', backgroundColor: '#fff', color: '#000', border: 'none', cursor: 'pointer', fontSize: open ? '22px' : '10px', fontWeight: 900, letterSpacing: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}
       >

@@ -116,22 +116,36 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
 
   if (loading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t('common.loading', 'LOADING')}</div>
 
-  const inputStyle = { width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none', marginBottom: '15px', fontFamily: 'inherit' }
-  const btnStyle = { padding: '10px 20px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' as const }
-  const btnGhost = { padding: '10px 20px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' as const }
-  const tabBtn = (active: boolean) => ({ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: active ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: active ? '900' as any : 'normal', letterSpacing: '1px', textTransform: 'uppercase' as const, borderBottom: active ? '2px solid #fff' : '2px solid transparent' })
+  const inputStyle = { width: '100%', padding: '12px 10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none', marginBottom: '15px', fontFamily: 'inherit', minHeight: '44px' }
+  const btnStyle = { padding: '10px 20px', minHeight: '44px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' as const }
+  const btnGhost = { padding: '10px 20px', minHeight: '44px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' as const }
+  const tabBtn = (active: boolean) => ({ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: active ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: active ? '900' as any : 'normal', letterSpacing: '1px', textTransform: 'uppercase' as const, borderBottom: active ? '2px solid #fff' : '2px solid transparent', flexShrink: 0, whiteSpace: 'nowrap' as const })
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '40px' }}>
+    <div className="pd-page" style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '40px' }}>
+      <style>{`
+        @media (max-width: 767px) {
+          .pd-page { padding: 20px 14px !important; }
+          .pd-title { font-size: 28px !important; }
+          .pd-tabs { display: flex !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch; scrollbar-width: none; margin: 0 -14px 30px !important; padding: 0 14px !important; }
+          .pd-tabs::-webkit-scrollbar { display: none; }
+          .pd-form-card { max-width: 100% !important; padding: 20px !important; }
+          .pd-form-actions { flex-direction: column !important; }
+          .pd-form-actions button { width: 100%; }
+          .pd-scene-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
+          .pd-ideas-grid { grid-template-columns: 1fr !important; }
+          .pd-timeline-row { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+        }
+      `}</style>
       <AdminNav trail={[t('admin.breadcrumbProjects', 'Projekter'), project?.name]} />
       <LanguageSwitcher />
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         <button onClick={() => router.back()} style={{ ...btnGhost, marginBottom: '30px' }}>← {t('common.back', 'Tilbage')}</button>
 
-        <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px' }}>{project?.name}</h1>
+        <h1 className="pd-title" style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px', wordBreak: 'break-word' }}>{project?.name}</h1>
         <p style={{ color: '#999', marginBottom: '40px' }}>{project?.description}</p>
 
-        <div style={{ borderBottom: '1px solid #333', marginBottom: '40px' }}>
+        <div className="pd-tabs" style={{ borderBottom: '1px solid #333', marginBottom: '40px' }}>
           <button onClick={() => setTab('scenes')} style={tabBtn(tab === 'scenes')}>{t('project.tabScenes', 'Scener')} ({scenes.length})</button>
           <button onClick={() => setTab('inspo')} style={tabBtn(tab === 'inspo')}>{t('project.tabInspo', 'Inspo')} ({ideas.length})</button>
           <button onClick={() => setTab('timeline')} style={tabBtn(tab === 'timeline')}>{t('project.tabTimeline', 'Timeline')} ({timeline.length})</button>
@@ -141,7 +155,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
           <div>
             {!showSceneForm && <button onClick={() => setShowSceneForm(true)} style={{ ...btnStyle, marginBottom: '30px' }}>+ {t('project.newScene', 'Ny Scene')}</button>}
             {showSceneForm && (
-              <div style={{ border: '1px solid #333', padding: '30px', marginBottom: '30px', maxWidth: '600px' }}>
+              <div className="pd-form-card" style={{ border: '1px solid #333', padding: '30px', marginBottom: '30px', maxWidth: '600px' }}>
                 <input placeholder={t('project.sceneTitlePlaceholder', 'Scene titel')} value={sceneForm.title} onChange={(e) => setSceneForm({ ...sceneForm, title: e.target.value })} style={inputStyle} />
                 <textarea placeholder={t('project.descriptionPlaceholder', 'Beskrivelse - hvad sker der?')} value={sceneForm.description} onChange={(e) => setSceneForm({ ...sceneForm, description: e.target.value })} style={{ ...inputStyle, minHeight: '80px', resize: 'none' }} />
                 <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px', marginTop: '10px' }}>{t('project.referenceLink', 'Reference Link (Instagram, YouTube, TikTok...)')}</label>
@@ -151,7 +165,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
                 <input placeholder="https://..." value={sceneForm.imageUrl} onChange={(e) => setSceneForm({ ...sceneForm, imageUrl: e.target.value })} style={inputStyle} />
                 <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', margin: '-8px 0 10px' }}>{t('upload.orLabel', 'eller')}</p>
                 <FileUploader value={sceneForm.imageUrl} onUploaded={(url) => setSceneForm({ ...sceneForm, imageUrl: url })} />
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div className="pd-form-actions" style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={createScene} style={btnStyle}>{t('common.save', 'Gem')}</button>
                   <button onClick={() => setShowSceneForm(false)} style={btnGhost}>{t('common.cancel', 'Annuller')}</button>
                 </div>
@@ -159,7 +173,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
             )}
 
             {scenes.length > 0 && (
-              <div style={{ overflowX: 'auto', paddingBottom: '20px', marginBottom: '40px', borderBottom: '1px solid #333' }}>
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '20px', marginBottom: '40px', borderBottom: '1px solid #333' }}>
                 <div style={{ display: 'flex', gap: '20px', minWidth: 'min-content' }}>
                   {scenes.map((s: any, i: number) => (
                     <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -177,7 +191,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
             {selectedScene && (() => {
               const parsed = parseSceneDesc(selectedScene.description)
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+                <div className="pd-scene-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
                   <div style={{ border: '1px solid #333', padding: '30px' }}>
                     <h2 style={{ fontSize: '20px', fontWeight: '900', marginBottom: '20px', textTransform: 'uppercase' }}>{selectedScene.title}</h2>
                     {selectedScene.imageUrl && <img src={resolveUploadUrl(selectedScene.imageUrl)} alt="" style={{ width: '100%', marginBottom: '20px' }} />}
@@ -214,7 +228,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
           <div>
             {!showIdeaForm && <button onClick={() => setShowIdeaForm(true)} style={{ ...btnStyle, marginBottom: '30px' }}>+ {t('project.newInspiration', 'Ny Inspiration')}</button>}
             {showIdeaForm && (
-              <div style={{ border: '1px solid #333', padding: '30px', marginBottom: '30px', maxWidth: '600px' }}>
+              <div className="pd-form-card" style={{ border: '1px solid #333', padding: '30px', marginBottom: '30px', maxWidth: '600px' }}>
                 <input placeholder={t('project.titlePlaceholder', 'Titel')} value={ideaForm.title} onChange={(e) => setIdeaForm({ ...ideaForm, title: e.target.value })} style={inputStyle} />
                 <textarea placeholder={t('project.ideaNotePlaceholder', "Note (fx 'skal være noget ala det her')")} value={ideaForm.description} onChange={(e) => setIdeaForm({ ...ideaForm, description: e.target.value })} style={{ ...inputStyle, minHeight: '80px', resize: 'none' }} />
                 <input placeholder={t('project.linkPlaceholder', 'Link (Instagram, YouTube, TikTok...)')} value={ideaForm.category} onChange={(e) => setIdeaForm({ ...ideaForm, category: e.target.value })} style={inputStyle} />
@@ -222,13 +236,13 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
                 <input placeholder="https://..." value={ideaForm.imageUrl} onChange={(e) => setIdeaForm({ ...ideaForm, imageUrl: e.target.value })} style={inputStyle} />
                 <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', margin: '-8px 0 10px' }}>{t('upload.orLabel', 'eller')}</p>
                 <FileUploader value={ideaForm.imageUrl} onUploaded={(url) => setIdeaForm({ ...ideaForm, imageUrl: url })} />
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div className="pd-form-actions" style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={createIdea} style={btnStyle}>{t('common.save', 'Gem')}</button>
                   <button onClick={() => setShowIdeaForm(false)} style={btnGhost}>{t('common.cancel', 'Annuller')}</button>
                 </div>
               </div>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+            <div className="pd-ideas-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
               {ideas.map((i: any) => (
                 <div key={i.id} style={{ border: '1px solid #333', padding: '20px' }}>
                   {i.imageUrl && <img src={resolveUploadUrl(i.imageUrl)} alt="" style={{ width: '100%', marginBottom: '15px' }} />}
@@ -246,7 +260,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
           <div>
             {!showTimelineForm && <button onClick={() => setShowTimelineForm(true)} style={{ ...btnStyle, marginBottom: '30px' }}>+ {t('project.newMilestone', 'Milestone')}</button>}
             {showTimelineForm && (
-              <div style={{ border: '1px solid #333', padding: '30px', marginBottom: '30px', maxWidth: '600px' }}>
+              <div className="pd-form-card" style={{ border: '1px solid #333', padding: '30px', marginBottom: '30px', maxWidth: '600px' }}>
                 <input placeholder={t('project.titlePlaceholder', 'Titel')} value={timelineForm.title} onChange={(e) => setTimelineForm({ ...timelineForm, title: e.target.value })} style={inputStyle} />
                 <textarea placeholder={t('customer.description', 'Beskrivelse')} value={timelineForm.description} onChange={(e) => setTimelineForm({ ...timelineForm, description: e.target.value })} style={{ ...inputStyle, minHeight: '60px', resize: 'none' }} />
                 <input type="date" value={timelineForm.dueDate} onChange={(e) => setTimelineForm({ ...timelineForm, dueDate: e.target.value })} style={inputStyle} />
@@ -255,7 +269,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
                   <option value="in-progress">{t('project.statusInProgress', 'In Progress')}</option>
                   <option value="done">{t('project.statusDone', 'Done')}</option>
                 </select>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div className="pd-form-actions" style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={createTimelineItem} style={btnStyle}>{t('common.save', 'Gem')}</button>
                   <button onClick={() => setShowTimelineForm(false)} style={btnGhost}>{t('common.cancel', 'Annuller')}</button>
                 </div>
@@ -263,7 +277,7 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
             )}
             <div>
               {timeline.map((tItem: any) => (
-                <div key={tItem.id} style={{ border: '1px solid #333', padding: '20px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div key={tItem.id} className="pd-timeline-row" style={{ border: '1px solid #333', padding: '20px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <h3 style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '5px' }}>{tItem.title}</h3>
                     <p style={{ color: '#999', fontSize: '12px' }}>{tItem.description}</p>

@@ -33,22 +33,30 @@ export default function AdminNav({ trail }: { trail: (string | null | undefined)
 
   return (
     <>
+      <style>{`
+        @media (max-width: 767px) {
+          .an-bar { padding: 0 120px 0 14px !important; gap: 10px !important; }
+          .an-badge { display: none !important; }
+          .an-back-label { display: none; }
+        }
+      `}</style>
       {/* Reserves the space the fixed bar below occupies, so page content
           isn't hidden underneath it. */}
       <div style={{ height: `${BAR_HEIGHT}px` }} />
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: `${BAR_HEIGHT}px`, zIndex: 300, backgroundColor: '#000', borderBottom: '1px solid #333', display: 'flex', alignItems: 'center', gap: '18px', padding: '0 130px 0 24px' }}>
+      <div className="an-bar" style={{ position: 'fixed', top: 0, left: 0, right: 0, height: `${BAR_HEIGHT}px`, zIndex: 300, backgroundColor: '#000', borderBottom: '1px solid #333', display: 'flex', alignItems: 'center', gap: '18px', padding: '0 130px 0 24px' }}>
         <Link
           href="/admin"
           onMouseEnter={() => setHovering(true)}
           onMouseLeave={() => setHovering(false)}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fff', textDecoration: 'none', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', border: `1px solid ${hovering ? '#fff' : '#333'}`, padding: '8px 14px', flexShrink: 0, transition: 'border-color 0.2s' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fff', textDecoration: 'none', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', border: `1px solid ${hovering ? '#fff' : '#333'}`, padding: '8px 14px', minHeight: '40px', flexShrink: 0, transition: 'border-color 0.2s' }}
         >
-          ← {t('admin.title', 'ADMIN')}
+          <span aria-hidden="true">←</span>
+          <span className="an-back-label">{t('admin.title', 'ADMIN')}</span>
         </Link>
         <p style={{ fontSize: '11px', color: '#666', letterSpacing: '0.5px', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0, margin: 0 }}>
           {crumbs.join(' › ')}
         </p>
-        <span style={{ fontSize: '9px', fontWeight: 'bold', letterSpacing: '1px', color: '#000', backgroundColor: '#fff', padding: '5px 10px', flexShrink: 0 }}>
+        <span className="an-badge" style={{ fontSize: '9px', fontWeight: 'bold', letterSpacing: '1px', color: '#000', backgroundColor: '#fff', padding: '5px 10px', flexShrink: 0 }}>
           {t('admin.adminModeBadge', 'ADMIN MODE')}
         </span>
       </div>

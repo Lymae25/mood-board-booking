@@ -8,6 +8,7 @@ import FileUploader from './FileUploader'
 import TypingIndicator from './TypingIndicator'
 import { useTranslation } from '@/lib/useTranslation'
 import { resolveUploadUrl } from '@/lib/resolveUploadUrl'
+import { useIsMobile } from '@/lib/useMediaQuery'
 
 const TYPING_THROTTLE_MS = 2000
 const TYPING_POLL_MS = 2000
@@ -55,6 +56,7 @@ export default function AdminPanel() {
   const replyAttachInputRef = useRef<HTMLInputElement>(null)
   const lastTypingSentRef = useRef(0)
   const { t } = useTranslation()
+  const isMobile = useIsMobile()
 
   useEffect(() => { loadData() }, [])
 
@@ -285,19 +287,50 @@ export default function AdminPanel() {
   if (loading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t('common.loading', 'LOADING')}</div>
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '60px 40px' }}>
+    <div className="ap-page" style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '60px 40px' }}>
+      <style>{`
+        @media (max-width: 767px) {
+          .ap-page { padding: 20px 14px !important; }
+          .ap-top-header { margin-bottom: 30px !important; padding-bottom: 20px !important; }
+          .ap-top-header h1 { font-size: 30px !important; }
+          .ap-tabs { display: flex !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch; scrollbar-width: none; margin: 0 -14px 30px !important; padding: 0 14px !important; }
+          .ap-tabs::-webkit-scrollbar { display: none; }
+          .ap-tabs button { flex-shrink: 0; margin-right: 26px !important; white-space: nowrap; }
+          .ap-meeting-cta { width: 100%; min-height: 48px; }
+          .ap-stats { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+          .ap-stats > div { padding: 16px !important; }
+          .ap-stats p:last-child { font-size: 26px !important; }
+          .ap-filter button { min-height: 40px; }
+          .ap-row { grid-template-columns: 52px 1fr !important; gap: 10px 14px !important; padding: 16px !important; }
+          .ap-row > *:nth-child(3), .ap-row > *:nth-child(4), .ap-row > *:nth-child(5) { grid-column: 1 / -1 !important; }
+          .ap-row > *:nth-child(3) { text-align: left !important; }
+          .ap-manage-grid { grid-template-columns: 1fr !important; }
+          .ap-manage-form { max-width: 100% !important; padding: 20px !important; }
+          .ap-manage-form-grid { grid-template-columns: 1fr !important; }
+          .ap-manage-form-actions { flex-direction: column !important; }
+          .ap-manage-form-actions button { width: 100%; min-height: 44px; }
+          .ap-messages-grid { grid-template-columns: 1fr !important; min-height: calc(100vh - 220px) !important; }
+          .ap-thread-scroll { max-height: none !important; }
+          .ap-calendar-cell { min-height: 52px !important; padding: 6px !important; }
+          .ap-calendar-nav button { min-width: 44px; min-height: 44px; }
+          .ap-daycard { padding: 16px !important; }
+          .ap-meeting-modal { padding: 0 !important; }
+          .ap-meeting-form { max-width: none !important; width: 100% !important; height: 100% !important; max-height: none !important; border-left: none !important; border-right: none !important; border-bottom: none !important; padding: 24px 20px !important; padding-top: max(24px, env(safe-area-inset-top)) !important; padding-bottom: max(24px, env(safe-area-inset-bottom)) !important; }
+          .ap-meeting-form-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
       <LanguageSwitcher />
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        <div style={{ marginBottom: '60px', borderBottom: '1px solid #333', paddingBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="ap-top-header" style={{ marginBottom: '60px', borderBottom: '1px solid #333', paddingBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px' }}>{t('admin.title', 'ADMIN')}</h1>
             <p style={{ fontSize: '12px', color: '#999', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('admin.subtitle', 'Chrome Vault Studios')}</p>
           </div>
-          <button onClick={() => { try { window.localStorage.removeItem('isAdmin') } catch (e) {}; router.push('/') }} style={{ padding: '10px 20px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.logout', 'Log ud')}</button>
+          <button onClick={() => { try { window.localStorage.removeItem('isAdmin') } catch (e) {}; router.push('/') }} style={{ padding: '10px 20px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', flexShrink: 0 }}>{t('common.logout', 'Log ud')}</button>
         </div>
 
         {/* View toggle */}
-        <div style={{ borderBottom: '1px solid #333', marginBottom: '40px' }}>
+        <div className="ap-tabs" style={{ borderBottom: '1px solid #333', marginBottom: '40px' }}>
           <button onClick={() => setView('overview')} style={{ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: view === 'overview' ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: view === 'overview' ? '900' : 'normal', letterSpacing: '1px', textTransform: 'uppercase', borderBottom: view === 'overview' ? '2px solid #fff' : '2px solid transparent' }}>{t('admin.tabOverview', 'Overblik')}</button>
           <button onClick={() => setView('manage')} style={{ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: view === 'manage' ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: view === 'manage' ? '900' : 'normal', letterSpacing: '1px', textTransform: 'uppercase', borderBottom: view === 'manage' ? '2px solid #fff' : '2px solid transparent' }}>{t('admin.tabManage', 'Håndter Kunder')}</button>
           <button onClick={() => setView('messages')} style={{ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: view === 'messages' ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: view === 'messages' ? '900' : 'normal', letterSpacing: '1px', textTransform: 'uppercase', borderBottom: view === 'messages' ? '2px solid #fff' : '2px solid transparent', position: 'relative' }}>
@@ -310,11 +343,11 @@ export default function AdminPanel() {
         {view === 'overview' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '30px' }}>
-              <button onClick={() => setShowMeetingForm(true)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #fff', color: '#fff', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 'bold' }}>+ {t('admin.createMeetingBtn', 'Opret Aftale')}</button>
+              <button className="ap-meeting-cta" onClick={() => setShowMeetingForm(true)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #fff', color: '#fff', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 'bold' }}>+ {t('admin.createMeetingBtn', 'Opret Aftale')}</button>
             </div>
 
             {/* Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginBottom: '50px' }}>
+            <div className="ap-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginBottom: '50px' }}>
               <div style={{ padding: '25px', border: '1px solid #333' }}>
                 <p style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{t('admin.statTotalProjects', 'Total Projekter')}</p>
                 <p style={{ fontSize: '36px', fontWeight: '900' }}>{stats.total}</p>
@@ -338,11 +371,11 @@ export default function AdminPanel() {
             </div>
 
             {/* Filter */}
-            <div style={{ marginBottom: '30px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="ap-filter" style={{ marginBottom: '30px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginRight: '10px' }}>{t('admin.filterLabel', 'Filter:')}</span>
-              <button onClick={() => setFilterStatus('all')} style={{ padding: '6px 14px', backgroundColor: filterStatus === 'all' ? '#fff' : 'transparent', color: filterStatus === 'all' ? '#000' : '#999', border: '1px solid #333', cursor: 'pointer', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('admin.filterAll', 'Alle')}</button>
+              <button onClick={() => setFilterStatus('all')} style={{ padding: '8px 14px', backgroundColor: filterStatus === 'all' ? '#fff' : 'transparent', color: filterStatus === 'all' ? '#000' : '#999', border: '1px solid #333', cursor: 'pointer', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('admin.filterAll', 'Alle')}</button>
               {STATUSES.map(s => (
-                <button key={s.key} onClick={() => setFilterStatus(s.key)} style={{ padding: '6px 14px', backgroundColor: filterStatus === s.key ? s.bg : 'transparent', color: filterStatus === s.key ? s.color : '#999', border: `1px solid ${filterStatus === s.key ? s.color : '#333'}`, cursor: 'pointer', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>{t(s.labelKey, s.label)}</button>
+                <button key={s.key} onClick={() => setFilterStatus(s.key)} style={{ padding: '8px 14px', backgroundColor: filterStatus === s.key ? s.bg : 'transparent', color: filterStatus === s.key ? s.color : '#999', border: `1px solid ${filterStatus === s.key ? s.color : '#333'}`, cursor: 'pointer', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>{t(s.labelKey, s.label)}</button>
               ))}
             </div>
 
@@ -359,7 +392,7 @@ export default function AdminPanel() {
                     const urgent = days !== null && days <= 7 && p.status !== 'done'
                     const overdue = days !== null && days < 0 && p.status !== 'done'
                     return (
-                      <div key={p.id} style={{ padding: '20px', border: `1px solid ${overdue ? '#ff6666' : urgent ? '#fbbf24' : '#333'}`, display: 'grid', gridTemplateColumns: '60px 1fr auto auto auto', gap: '20px', alignItems: 'center' }}>
+                      <div key={p.id} className="ap-row" style={{ padding: '20px', border: `1px solid ${overdue ? '#ff6666' : urgent ? '#fbbf24' : '#333'}`, display: 'grid', gridTemplateColumns: '60px 1fr auto auto auto', gap: '20px', alignItems: 'center' }}>
                         {customer?.logoUrl ? (
                           <img src={resolveUploadUrl(customer.logoUrl)} alt={customer.name} style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #333' }} />
                         ) : (
@@ -388,7 +421,7 @@ export default function AdminPanel() {
                           )}
                         </div>
                         <StatusBadge projectId={p.id} status={p.status} onUpdate={loadData} />
-                        <Link href={`/project/${p.id}`} style={{ padding: '8px 14px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', textDecoration: 'none', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.open', 'Åbn')}</Link>
+                        <Link href={`/project/${p.id}`} style={{ padding: '8px 14px', minHeight: '40px', display: 'inline-flex', alignItems: 'center', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', textDecoration: 'none', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.open', 'Åbn')}</Link>
                       </div>
                     )
                   })}
@@ -408,29 +441,29 @@ export default function AdminPanel() {
               </div>
 
               {showCustomerForm && (
-                <form onSubmit={createCustomer} style={{ marginBottom: '40px', maxWidth: '600px', border: '1px solid #333', padding: '30px' }}>
+                <form onSubmit={createCustomer} className="ap-manage-form" style={{ marginBottom: '40px', maxWidth: '600px', border: '1px solid #333', padding: '30px' }}>
                   <div style={{ marginBottom: '20px' }}>
                     <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.customerName', 'Kunde Navn')}</label>
-                    <input type="text" value={customerForm.name} onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} required />
+                    <input type="text" value={customerForm.name} onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none' }} required />
                   </div>
                   <div style={{ marginBottom: '20px' }}>
                     <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.logoUrl', 'Logo URL')}</label>
-                    <input type="url" value={customerForm.logoUrl} onChange={(e) => setCustomerForm({ ...customerForm, logoUrl: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none', marginBottom: '15px' }} />
+                    <input type="url" inputMode="url" value={customerForm.logoUrl} onChange={(e) => setCustomerForm({ ...customerForm, logoUrl: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none', marginBottom: '15px' }} />
                     <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{t('upload.orLabel', 'eller')}</p>
                     <FileUploader value={customerForm.logoUrl} onUploaded={(url) => setCustomerForm({ ...customerForm, logoUrl: url })} />
                   </div>
                   <div style={{ marginBottom: '30px' }}>
                     <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.pinLabel', 'PIN (4 cifre)')}</label>
-                    <input type="password" value={customerForm.pin} onChange={(e) => setCustomerForm({ ...customerForm, pin: e.target.value })} maxLength={4} pattern="[0-9]{4}" style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} required />
+                    <input type="password" inputMode="numeric" value={customerForm.pin} onChange={(e) => setCustomerForm({ ...customerForm, pin: e.target.value })} maxLength={4} pattern="[0-9]{4}" style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none' }} required />
                   </div>
-                  <div style={{ display: 'flex', gap: '15px' }}>
-                    <button type="submit" style={{ padding: '12px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.create', 'Opret')}</button>
-                    <button type="button" onClick={() => setShowCustomerForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.cancel', 'Annuller')}</button>
+                  <div className="ap-manage-form-actions" style={{ display: 'flex', gap: '15px' }}>
+                    <button type="submit" style={{ padding: '12px 24px', minHeight: '44px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.create', 'Opret')}</button>
+                    <button type="button" onClick={() => setShowCustomerForm(false)} style={{ padding: '12px 24px', minHeight: '44px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.cancel', 'Annuller')}</button>
                   </div>
                 </form>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+              <div className="ap-manage-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
                 {customers.map((c: any) => (
                   <div key={c.id} onClick={() => router.push(`/customer/${c.id}`)} style={{ border: '1px solid #333', padding: '20px', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'all 0.2s' }} onMouseOver={(e) => { e.currentTarget.style.borderColor = '#fff' }} onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333' }}>
                     <div style={{ width: '60px', height: '60px', borderRadius: '50%', border: '1px solid #333', overflow: 'hidden', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -440,7 +473,7 @@ export default function AdminPanel() {
                       <h3 style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '5px' }}>{c.name}</h3>
                       <p style={{ fontSize: '11px', color: '#666' }}>{t('admin.pinPrefix', 'PIN:')} {c.pin}</p>
                     </div>
-                    <button onClick={(e) => deleteCustomer(c.id, e)} style={{ padding: '6px 12px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', cursor: 'pointer', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.delete', 'Slet')}</button>
+                    <button onClick={(e) => deleteCustomer(c.id, e)} style={{ padding: '6px 12px', minHeight: '36px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', cursor: 'pointer', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.delete', 'Slet')}</button>
                   </div>
                 ))}
               </div>
@@ -454,46 +487,46 @@ export default function AdminPanel() {
               </div>
 
               {showProjectForm && (
-                <form onSubmit={createProject} style={{ marginBottom: '40px', maxWidth: '600px', border: '1px solid #333', padding: '30px' }}>
+                <form onSubmit={createProject} className="ap-manage-form" style={{ marginBottom: '40px', maxWidth: '600px', border: '1px solid #333', padding: '30px' }}>
                   <div style={{ marginBottom: '20px' }}>
                     <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.customerLabel', 'Kunde')}</label>
-                    <select value={projectForm.customerId} onChange={(e) => setProjectForm({ ...projectForm, customerId: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} required>
+                    <select value={projectForm.customerId} onChange={(e) => setProjectForm({ ...projectForm, customerId: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none' }} required>
                       <option value="" style={{ backgroundColor: '#000' }}>{t('admin.selectCustomer', 'Vælg kunde')}</option>
                       {customers.map((c: any) => <option key={c.id} value={c.id} style={{ backgroundColor: '#000' }}>{c.name}</option>)}
                     </select>
                   </div>
                   <div style={{ marginBottom: '20px' }}>
                     <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.projectName', 'Projekt Navn')}</label>
-                    <input type="text" value={projectForm.name} onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} required />
+                    <input type="text" value={projectForm.name} onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none' }} required />
                   </div>
                   <div style={{ marginBottom: '20px' }}>
                     <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.description', 'Beskrivelse')}</label>
-                    <textarea value={projectForm.description} onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none', minHeight: '60px', fontFamily: 'inherit', resize: 'none' }} />
+                    <textarea value={projectForm.description} onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none', minHeight: '60px', fontFamily: 'inherit', resize: 'none' }} />
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                  <div className="ap-manage-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                     <div>
                       <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.startDate', 'Start Dato')}</label>
-                      <input type="date" value={projectForm.startDate} onChange={(e) => setProjectForm({ ...projectForm, startDate: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} />
+                      <input type="date" value={projectForm.startDate} onChange={(e) => setProjectForm({ ...projectForm, startDate: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none' }} />
                     </div>
                     <div>
                       <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.deadlineLabel', 'Deadline')}</label>
-                      <input type="date" value={projectForm.endDate} onChange={(e) => setProjectForm({ ...projectForm, endDate: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} />
+                      <input type="date" value={projectForm.endDate} onChange={(e) => setProjectForm({ ...projectForm, endDate: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none' }} />
                     </div>
                   </div>
                   <div style={{ marginBottom: '30px' }}>
                     <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.logoUrl', 'Logo URL')}</label>
-                    <input type="url" value={projectForm.logoUrl} onChange={(e) => setProjectForm({ ...projectForm, logoUrl: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none', marginBottom: '15px' }} />
+                    <input type="url" inputMode="url" value={projectForm.logoUrl} onChange={(e) => setProjectForm({ ...projectForm, logoUrl: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none', marginBottom: '15px' }} />
                     <p style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{t('upload.orLabel', 'eller')}</p>
                     <FileUploader value={projectForm.logoUrl} onUploaded={(url) => setProjectForm({ ...projectForm, logoUrl: url })} />
                   </div>
-                  <div style={{ display: 'flex', gap: '15px' }}>
-                    <button type="submit" style={{ padding: '12px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.create', 'Opret')}</button>
-                    <button type="button" onClick={() => setShowProjectForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.cancel', 'Annuller')}</button>
+                  <div className="ap-manage-form-actions" style={{ display: 'flex', gap: '15px' }}>
+                    <button type="submit" style={{ padding: '12px 24px', minHeight: '44px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.create', 'Opret')}</button>
+                    <button type="button" onClick={() => setShowProjectForm(false)} style={{ padding: '12px 24px', minHeight: '44px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.cancel', 'Annuller')}</button>
                   </div>
                 </form>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
+              <div className="ap-manage-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
                 {projects.map((p: any) => {
                   const customer = customers.find((c: any) => c.id === p.customerId)
                   return (
@@ -507,8 +540,8 @@ export default function AdminPanel() {
                           <StatusBadge projectId={p.id} status={p.status} onUpdate={loadData} />
                         </div>
                         <div style={{ display: 'flex', gap: '10px' }}>
-                          <Link href={`/project/${p.id}`} style={{ padding: '6px 12px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', textDecoration: 'none', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.open', 'Åbn')}</Link>
-                          <button onClick={() => deleteProject(p.id)} style={{ padding: '6px 12px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', cursor: 'pointer', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.delete', 'Slet')}</button>
+                          <Link href={`/project/${p.id}`} style={{ padding: '6px 12px', minHeight: '36px', display: 'inline-flex', alignItems: 'center', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', textDecoration: 'none', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.open', 'Åbn')}</Link>
+                          <button onClick={() => deleteProject(p.id)} style={{ padding: '6px 12px', minHeight: '36px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', cursor: 'pointer', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.delete', 'Slet')}</button>
                         </div>
                       </div>
                     </div>
@@ -520,34 +553,37 @@ export default function AdminPanel() {
         )}
 
         {view === 'messages' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '30px', minHeight: '500px' }}>
-            <div style={{ border: '1px solid #333' }}>
-              <div style={{ padding: '20px', borderBottom: '1px solid #333' }}>
-                <h2 style={{ fontSize: '14px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('admin.conversationsHeading', 'Samtaler')}</h2>
-              </div>
-              <div>
-                {customers.length === 0 && <p style={{ padding: '20px', color: '#666', fontSize: '12px' }}>{t('admin.noCustomersYet', 'Ingen kunder endnu')}</p>}
-                {customers.map((c: any) => {
-                  const msgs = messages.filter((m: any) => m.customerId === c.id)
-                  const unread = msgs.filter((m: any) => m.sender === 'customer' && !m.readByAdmin).length
-                  const last = msgs[msgs.length - 1]
-                  const active = selectedCustomerId === c.id
-                  return (
-                    <div key={c.id} onClick={() => openConversation(c.id)} style={{ padding: '16px 20px', borderBottom: '1px solid #222', cursor: 'pointer', backgroundColor: active ? '#111' : 'transparent', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', border: '1px solid #333', backgroundColor: '#111', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {c.logoUrl ? <img src={resolveUploadUrl(c.logoUrl)} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '13px', color: '#666' }}>{c.name.charAt(0)}</span>}
+          <div className="ap-messages-grid" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '30px', minHeight: '500px' }}>
+            {(!isMobile || !selectedCustomerId) && (
+              <div style={{ border: '1px solid #333' }}>
+                <div style={{ padding: '20px', borderBottom: '1px solid #333' }}>
+                  <h2 style={{ fontSize: '14px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('admin.conversationsHeading', 'Samtaler')}</h2>
+                </div>
+                <div>
+                  {customers.length === 0 && <p style={{ padding: '20px', color: '#666', fontSize: '12px' }}>{t('admin.noCustomersYet', 'Ingen kunder endnu')}</p>}
+                  {customers.map((c: any) => {
+                    const msgs = messages.filter((m: any) => m.customerId === c.id)
+                    const unread = msgs.filter((m: any) => m.sender === 'customer' && !m.readByAdmin).length
+                    const last = msgs[msgs.length - 1]
+                    const active = selectedCustomerId === c.id
+                    return (
+                      <div key={c.id} onClick={() => openConversation(c.id)} style={{ padding: '16px 20px', borderBottom: '1px solid #222', cursor: 'pointer', backgroundColor: active ? '#111' : 'transparent', display: 'flex', alignItems: 'center', gap: '12px', minHeight: '44px' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', border: '1px solid #333', backgroundColor: '#111', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {c.logoUrl ? <img src={resolveUploadUrl(c.logoUrl)} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '13px', color: '#666' }}>{c.name.charAt(0)}</span>}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>{c.name}</p>
+                          <p style={{ fontSize: '11px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{last ? `${last.sender === 'admin' ? t('admin.youPrefix', 'Dig:') + ' ' : ''}${last.content || t('chat.attachImage', 'Billede')}` : t('admin.noMessagesYet', 'Ingen beskeder endnu')}</p>
+                        </div>
+                        {unread > 0 && <span style={{ backgroundColor: '#ff6666', color: '#fff', fontSize: '10px', fontWeight: 'bold', minWidth: '20px', height: '20px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px', flexShrink: 0 }}>{unread}</span>}
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>{c.name}</p>
-                        <p style={{ fontSize: '11px', color: '#666', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{last ? `${last.sender === 'admin' ? t('admin.youPrefix', 'Dig:') + ' ' : ''}${last.content || t('chat.attachImage', 'Billede')}` : t('admin.noMessagesYet', 'Ingen beskeder endnu')}</p>
-                      </div>
-                      {unread > 0 && <span style={{ backgroundColor: '#ff6666', color: '#fff', fontSize: '10px', fontWeight: 'bold', minWidth: '20px', height: '20px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px', flexShrink: 0 }}>{unread}</span>}
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
+            {(!isMobile || selectedCustomerId) && (
             <div style={{ border: '1px solid #333', display: 'flex', flexDirection: 'column' }}>
               {!selectedCustomerId ? (
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -558,10 +594,13 @@ export default function AdminPanel() {
                 const thread = messages.filter((m: any) => m.customerId === selectedCustomerId)
                 return (
                   <>
-                    <div style={{ padding: '20px', borderBottom: '1px solid #333' }}>
+                    <div style={{ padding: '20px', borderBottom: '1px solid #333', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      {isMobile && (
+                        <button onClick={() => setSelectedCustomerId(null)} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '18px', cursor: 'pointer', padding: 0, minWidth: '44px', minHeight: '44px', flexShrink: 0 }}>←</button>
+                      )}
                       <p style={{ fontSize: '13px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>{activeCustomer?.name}</p>
                     </div>
-                    <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '400px' }}>
+                    <div className="ap-thread-scroll" style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '400px' }}>
                       {thread.length === 0 && <p style={{ color: '#666', fontSize: '12px' }}>{t('admin.noMessagesYet', 'Ingen beskeder endnu')}</p>}
                       {thread.map((m: any) => (
                         <div key={m.id} style={{ alignSelf: m.sender === 'admin' ? 'flex-end' : 'flex-start', maxWidth: '70%' }}>
@@ -604,27 +643,28 @@ export default function AdminPanel() {
                           onChange={(e) => { setReply(e.target.value); notifyTyping() }}
                           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply() } }}
                           placeholder={t('admin.typeReplyPlaceholder', 'Skriv et svar...')}
-                          style={{ flex: 1, resize: 'none', minHeight: '40px', maxHeight: '100px', padding: '10px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }}
+                          style={{ flex: 1, resize: 'none', minHeight: '44px', maxHeight: '100px', padding: '10px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none', fontFamily: 'inherit' }}
                         />
-                        <button type="button" onClick={() => replyAttachInputRef.current?.click()} title={t('chat.attachImage', 'Billede')} style={{ width: '40px', padding: 0, backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }}>+</button>
+                        <button type="button" onClick={() => replyAttachInputRef.current?.click()} title={t('chat.attachImage', 'Billede')} style={{ width: '44px', minHeight: '44px', padding: 0, backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '18px', lineHeight: 1, flexShrink: 0 }}>+</button>
                         <input ref={replyAttachInputRef} type="file" accept="image/*" onChange={handleReplyAttach} style={{ display: 'none' }} />
-                        <button onClick={sendReply} disabled={sendingReply || (!reply.trim() && !replyImage)} style={{ padding: '0 20px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', opacity: sendingReply || (!reply.trim() && !replyImage) ? 0.5 : 1 }}>{t('common.send', 'Send')}</button>
+                        <button onClick={sendReply} disabled={sendingReply || (!reply.trim() && !replyImage)} style={{ padding: '0 20px', minHeight: '44px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', opacity: sendingReply || (!reply.trim() && !replyImage) ? 0.5 : 1, flexShrink: 0 }}>{t('common.send', 'Send')}</button>
                       </div>
                     </div>
                   </>
                 )
               })()}
             </div>
+            )}
           </div>
         )}
 
         {view === 'calendar' && (
           <div>
             {/* Month navigation */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '30px' }}>
-              <button onClick={prevMonth} style={{ padding: '10px 18px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', cursor: 'pointer', fontSize: '14px' }}>←</button>
-              <h2 style={{ fontSize: '20px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase' }}>{monthLabel}</h2>
-              <button onClick={nextMonth} style={{ padding: '10px 18px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', cursor: 'pointer', fontSize: '14px' }}>→</button>
+            <div className="ap-calendar-nav" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '30px' }}>
+              <button onClick={prevMonth} style={{ padding: '10px 18px', minWidth: '44px', minHeight: '44px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', cursor: 'pointer', fontSize: '14px' }}>←</button>
+              <h2 style={{ fontSize: '18px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase', textAlign: 'center' }}>{monthLabel}</h2>
+              <button onClick={nextMonth} style={{ padding: '10px 18px', minWidth: '44px', minHeight: '44px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', cursor: 'pointer', fontSize: '14px' }}>→</button>
             </div>
 
             {/* Legend */}
@@ -667,6 +707,7 @@ export default function AdminPanel() {
                 return (
                   <div
                     key={i}
+                    className="ap-calendar-cell"
                     onClick={() => setSelectedDate(dayEvents.length > 0 ? (isSelected ? null : dateStr) : null)}
                     style={{ backgroundColor: isSelected ? '#111' : '#000', minHeight: '90px', padding: '8px', cursor: dayEvents.length > 0 ? 'pointer' : 'default', border: isToday ? '1px solid #fff' : '1px solid transparent' }}
                   >
@@ -686,7 +727,7 @@ export default function AdminPanel() {
 
             {/* Selected date event list */}
             {selectedDate && (
-              <div style={{ border: '1px solid #333', padding: '25px 30px' }}>
+              <div className="ap-daycard" style={{ border: '1px solid #333', padding: '25px 30px' }}>
                 <h3 style={{ fontSize: '14px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '20px' }}>
                   {new Date(selectedDate + 'T00:00:00').toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                 </h3>
@@ -708,9 +749,9 @@ export default function AdminPanel() {
                           )}
                         </div>
                         {ev.kind === 'meeting' && ev.meeting ? (
-                          <button onClick={() => deleteMeeting(ev.meeting.id)} style={{ padding: '8px 14px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', cursor: 'pointer', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.delete', 'Slet')}</button>
+                          <button onClick={() => deleteMeeting(ev.meeting.id)} style={{ padding: '8px 14px', minHeight: '40px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', cursor: 'pointer', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', flexShrink: 0 }}>{t('common.delete', 'Slet')}</button>
                         ) : (
-                          <Link href={`/project/${ev.projectId}`} style={{ padding: '8px 14px', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', textDecoration: 'none', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.open', 'Åbn')}</Link>
+                          <Link href={`/project/${ev.projectId}`} style={{ padding: '8px 14px', minHeight: '40px', display: 'inline-flex', alignItems: 'center', backgroundColor: 'transparent', border: '1px solid #666', color: '#999', textDecoration: 'none', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase', flexShrink: 0 }}>{t('common.open', 'Åbn')}</Link>
                         )}
                       </div>
                     )
@@ -723,13 +764,13 @@ export default function AdminPanel() {
       </div>
 
       {showMeetingForm && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={() => setShowMeetingForm(false)}>
-          <form onSubmit={createMeeting} onClick={(e) => e.stopPropagation()} style={{ backgroundColor: '#000', border: '1px solid #333', padding: '40px', maxWidth: '480px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="ap-meeting-modal" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={() => setShowMeetingForm(false)}>
+          <form onSubmit={createMeeting} onClick={(e) => e.stopPropagation()} className="ap-meeting-form" style={{ backgroundColor: '#000', border: '1px solid #333', padding: '40px', maxWidth: '480px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <h2 style={{ fontSize: '18px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '30px' }}>{t('admin.meetingModalTitle', 'Ny Aftale')}</h2>
 
             <div style={{ marginBottom: '20px' }}>
               <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.customerLabel', 'Kunde')}</label>
-              <select value={meetingForm.customerId} onChange={(e) => setMeetingForm({ ...meetingForm, customerId: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} required>
+              <select value={meetingForm.customerId} onChange={(e) => setMeetingForm({ ...meetingForm, customerId: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none' }} required>
                 <option value="" style={{ backgroundColor: '#000' }}>{t('admin.selectCustomer', 'Vælg kunde')}</option>
                 {customers.map((c: any) => <option key={c.id} value={c.id} style={{ backgroundColor: '#000' }}>{c.name}</option>)}
               </select>
@@ -737,33 +778,33 @@ export default function AdminPanel() {
 
             <div style={{ marginBottom: '20px' }}>
               <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('project.titlePlaceholder', 'Titel')}</label>
-              <input type="text" value={meetingForm.title} onChange={(e) => setMeetingForm({ ...meetingForm, title: e.target.value })} placeholder="Kaffemøde" style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} required />
+              <input type="text" value={meetingForm.title} onChange={(e) => setMeetingForm({ ...meetingForm, title: e.target.value })} placeholder="Kaffemøde" style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none' }} required />
             </div>
 
             <div style={{ marginBottom: '20px' }}>
               <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('customer.description', 'Beskrivelse')}</label>
-              <textarea value={meetingForm.description} onChange={(e) => setMeetingForm({ ...meetingForm, description: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none', minHeight: '60px', fontFamily: 'inherit', resize: 'none' }} />
+              <textarea value={meetingForm.description} onChange={(e) => setMeetingForm({ ...meetingForm, description: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none', minHeight: '60px', fontFamily: 'inherit', resize: 'none' }} />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div className="ap-meeting-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
               <div>
                 <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.meetingDateLabel', 'Dato')}</label>
-                <input type="date" value={meetingForm.meetingDate} onChange={(e) => setMeetingForm({ ...meetingForm, meetingDate: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} required />
+                <input type="date" value={meetingForm.meetingDate} onChange={(e) => setMeetingForm({ ...meetingForm, meetingDate: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none' }} required />
               </div>
               <div>
                 <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.meetingTimeLabel', 'Tidspunkt')}</label>
-                <input type="time" value={meetingForm.meetingTime} onChange={(e) => setMeetingForm({ ...meetingForm, meetingTime: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} required />
+                <input type="time" value={meetingForm.meetingTime} onChange={(e) => setMeetingForm({ ...meetingForm, meetingTime: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none' }} required />
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div className="ap-meeting-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
               <div>
                 <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.meetingDurationLabel', 'Varighed (minutter)')}</label>
-                <input type="number" min={5} step={5} value={meetingForm.duration} onChange={(e) => setMeetingForm({ ...meetingForm, duration: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} />
+                <input type="number" inputMode="numeric" min={5} step={5} value={meetingForm.duration} onChange={(e) => setMeetingForm({ ...meetingForm, duration: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none' }} />
               </div>
               <div>
                 <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.meetingTypeLabel', 'Type')}</label>
-                <select value={meetingForm.meetingType} onChange={(e) => setMeetingForm({ ...meetingForm, meetingType: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }}>
+                <select value={meetingForm.meetingType} onChange={(e) => setMeetingForm({ ...meetingForm, meetingType: e.target.value })} style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none' }}>
                   {MEETING_TYPES.map(mt => <option key={mt.key} value={mt.key} style={{ backgroundColor: '#000' }}>{t(mt.labelKey, mt.label)}</option>)}
                 </select>
               </div>
@@ -776,12 +817,12 @@ export default function AdminPanel() {
 
             <div style={{ marginBottom: '30px' }}>
               <label style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>{t('admin.meetingLocationLabel', 'Sted')}</label>
-              <input type="text" value={meetingForm.location} onChange={(e) => setMeetingForm({ ...meetingForm, location: e.target.value })} placeholder="Café Norden, Nørrebro" style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '14px', outline: 'none' }} />
+              <input type="text" value={meetingForm.location} onChange={(e) => setMeetingForm({ ...meetingForm, location: e.target.value })} placeholder="Café Norden, Nørrebro" style={{ width: '100%', padding: '12px 0', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', color: '#fff', fontSize: '16px', outline: 'none' }} />
             </div>
 
-            <div style={{ display: 'flex', gap: '15px' }}>
-              <button type="submit" style={{ padding: '12px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.create', 'Opret')}</button>
-              <button type="button" onClick={() => setShowMeetingForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.cancel', 'Annuller')}</button>
+            <div className="ap-manage-form-actions" style={{ display: 'flex', gap: '15px' }}>
+              <button type="submit" style={{ padding: '12px 24px', minHeight: '44px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.create', 'Opret')}</button>
+              <button type="button" onClick={() => setShowMeetingForm(false)} style={{ padding: '12px 24px', minHeight: '44px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('common.cancel', 'Annuller')}</button>
             </div>
           </form>
         </div>

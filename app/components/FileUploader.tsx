@@ -61,7 +61,14 @@ export default function FileUploader({ value, onUploaded, accept = 'image/*,vide
 
   return (
     <div style={{ marginBottom: '15px' }}>
+      <style>{`
+        @media (max-width: 767px) {
+          .fu-dropzone { min-height: 96px; display: flex !important; align-items: center; justify-content: center; }
+          .fu-choose-btn { width: 100%; min-height: 48px; background-color: #fff !important; color: #000 !important; border-color: #fff !important; font-weight: bold; }
+        }
+      `}</style>
       <div
+        className="fu-dropzone"
         onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files) }}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
@@ -87,7 +94,7 @@ export default function FileUploader({ value, onUploaded, accept = 'image/*,vide
         <input ref={inputRef} type="file" accept={accept} onChange={(e) => handleFiles(e.target.files)} style={{ display: 'none' }} />
       </div>
       {!uploading && (
-        <button type="button" onClick={() => inputRef.current?.click()} style={{ padding: '8px 16px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('upload.chooseFile', 'Vælg fil')}</button>
+        <button type="button" className="fu-choose-btn" onClick={() => inputRef.current?.click()} style={{ padding: '8px 16px', minHeight: '40px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('upload.chooseFile', 'Vælg fil')}</button>
       )}
       {error && <p style={{ color: '#ff6666', fontSize: '11px', marginTop: '8px' }}>{error}</p>}
     </div>

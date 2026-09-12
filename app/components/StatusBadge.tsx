@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useTranslation } from '@/lib/useTranslation'
+import { useIsMobile } from '@/lib/useMediaQuery'
 
 export const STATUSES = [
   { key: 'new', label: 'New', labelKey: 'status.new', color: '#6b7280', bg: '#1f2937' },
@@ -20,6 +21,7 @@ export default function StatusBadge({ projectId, status, editable = true, onUpda
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const { t } = useTranslation()
+  const isMobile = useIsMobile()
 
   const style = getStatusStyle(current)
 
@@ -48,28 +50,49 @@ export default function StatusBadge({ projectId, status, editable = true, onUpda
     )
   }
 
+  const optionsList = (
+    <>
+      {STATUSES.map(s => (
+        <button
+          key={s.key}
+          onClick={(e) => changeStatus(s.key, e)}
+          style={{ display: 'block', width: '100%', padding: '10px 12px', minHeight: '44px', backgroundColor: current === s.key ? '#111' : 'transparent', color: s.color, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', border: 'none', borderBottom: '1px solid #222', cursor: 'pointer', textAlign: 'left' }}
+          onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#1a1a1a' }}
+          onMouseOut={(e) => { e.currentTarget.style.backgroundColor = current === s.key ? '#111' : 'transparent' }}
+        >
+          {t(s.labelKey, s.label)}
+        </button>
+      ))}
+    </>
+  )
+
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
       <button
         onClick={(e) => { e.stopPropagation(); e.preventDefault(); setOpen(!open) }}
         disabled={saving}
-        style={{ padding: '4px 10px', backgroundColor: style.bg, color: style.color, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', border: 'none', cursor: 'pointer', borderRadius: '2px', opacity: saving ? 0.5 : 1 }}
+        style={{ padding: '6px 12px', minHeight: '32px', backgroundColor: style.bg, color: style.color, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', border: 'none', cursor: 'pointer', borderRadius: '2px', opacity: saving ? 0.5 : 1 }}
       >
         {t(style.labelKey, style.label)} ▾
       </button>
-      {open && (
+
+      {open && isMobile && (
+        // Bottom sheet: easier to hit and doesn't get clipped by a
+        // scrolling ancestor the way an absolutely-positioned dropdown can.
+        <div
+          onClick={(e) => { e.stopPropagation(); e.preventDefault(); setOpen(false) }}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 500, display: 'flex', alignItems: 'flex-end' }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', backgroundColor: '#000', borderTop: '1px solid #333', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+            <div style={{ padding: '16px 20px 8px', fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('common.status', 'Status')}</div>
+            {optionsList}
+          </div>
+        </div>
+      )}
+
+      {open && !isMobile && (
         <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '4px', backgroundColor: '#000', border: '1px solid #333', minWidth: '200px', zIndex: 200 }}>
-          {STATUSES.map(s => (
-            <button
-              key={s.key}
-              onClick={(e) => changeStatus(s.key, e)}
-              style={{ display: 'block', width: '100%', padding: '10px 12px', backgroundColor: current === s.key ? '#111' : 'transparent', color: s.color, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', border: 'none', borderBottom: '1px solid #222', cursor: 'pointer', textAlign: 'left' }}
-              onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#1a1a1a' }}
-              onMouseOut={(e) => { e.currentTarget.style.backgroundColor = current === s.key ? '#111' : 'transparent' }}
-            >
-              {t(s.labelKey, s.label)}
-            </button>
-          ))}
+          {optionsList}
         </div>
       )}
     </div>

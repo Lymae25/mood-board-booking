@@ -2,10 +2,25 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  /* Hard guarantee against any stray horizontal scroll on mobile,
+     regardless of what an individual page does. */
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 body {
   background: #000;
   color: #fff;
   font-family: system-ui, -apple-system, sans-serif;
+  /* iOS zooms in on focus for inputs with a computed font-size under 16px.
+     Inputs across the app set their own font-size; this is a floor. */
+  -webkit-text-size-adjust: 100%;
+}
+
+input, textarea, select, button {
+  font-family: inherit;
 }

@@ -19,7 +19,8 @@ export const translations: Record<Language, TranslationTree> = {
       loading: 'INDLÆSER',
       send: 'Send',
       logout: 'Log ud',
-      create: 'Opret'
+      create: 'Opret',
+      status: 'Status'
     },
     selector: {
       title: 'MOOD BOARD',
@@ -176,7 +177,8 @@ export const translations: Record<Language, TranslationTree> = {
       loading: 'LOADING',
       send: 'Send',
       logout: 'Log out',
-      create: 'Create'
+      create: 'Create',
+      status: 'Status'
     },
     selector: {
       title: 'MOOD BOARD',
@@ -333,7 +335,8 @@ export const translations: Record<Language, TranslationTree> = {
       loading: 'NAGLO-LOAD',
       send: 'Ipadala',
       logout: 'Mag-logout',
-      create: 'Gumawa'
+      create: 'Gumawa',
+      status: 'Status'
     },
     selector: {
       title: 'MOOD BOARD',
