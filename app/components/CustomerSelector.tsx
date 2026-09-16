@@ -9,7 +9,10 @@ export default function CustomerSelector() {
   const [customers, setCustomers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdminPin, setShowAdminPin] = useState(false)
-  const [adminPin, setAdminPin] = useState('')
+  const [adminPassword, setAdminPassword] = useState('')
+  const [adminTotp, setAdminTotp] = useState('')
+  const [totpRequired, setTotpRequired] = useState(false)
+  const [loggingIn, setLoggingIn] = useState(false)
   const [error, setError] = useState('')
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -88,13 +91,36 @@ export default function CustomerSelector() {
     setTimeout(() => { router.push(`/pin/${customerId}`) }, 2000)
   }
 
-  function checkAdminPin() {
-    if (adminPin === '1010') {
-      try { window.localStorage.setItem('isAdmin', 'true') } catch (e) {}
-      router.push('/admin')
-    } else {
+  async function checkAdminPin() {
+    if (loggingIn) return
+    setLoggingIn(true)
+    setError('')
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword, totp: totpRequired ? adminTotp : undefined })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        try { window.localStorage.setItem('isAdmin', 'true') } catch (e) {}
+        router.push('/admin')
+        return
+      }
+      if (data.error === 'invalid_totp') {
+        // Password was correct - the account just also needs a 2FA code.
+        // Show that field and let the admin submit again with it filled in.
+        setTotpRequired(true)
+        setError(t('selector.totpRequired', 'Indtast 2FA-kode fra din authenticator-app'))
+      } else if (data.error === 'rate_limited') {
+        setError(t('selector.tooManyAttempts', 'For mange forsøg. Prøv igen om lidt.'))
+      } else {
+        setError(t('selector.wrongCode', 'Forkert kode'))
+      }
+    } catch (e) {
       setError(t('selector.wrongCode', 'Forkert kode'))
-      setTimeout(() => setError(''), 2000)
+    } finally {
+      setLoggingIn(false)
     }
   }
 
@@ -217,18 +243,31 @@ export default function CustomerSelector() {
           <input
             className="cs-admin-pin-input"
             type="password"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={adminPin}
-            onChange={(e) => setAdminPin(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && checkAdminPin()}
-            maxLength={4}
-            placeholder={t('selector.adminPinPlaceholder', 'Admin PIN')}
-            style={{ padding: '14px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', fontSize: '18px', textAlign: 'center', letterSpacing: '8px', width: '200px' }}
+            autoComplete="current-password"
+            value={adminPassword}
+            onChange={(e) => setAdminPassword(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && !totpRequired && checkAdminPin()}
+            placeholder={t('selector.adminPasswordPlaceholder', 'Admin adgangskode')}
+            style={{ padding: '14px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', fontSize: '16px', textAlign: 'center', width: '260px' }}
             autoFocus
           />
-          {error && <p style={{ color: '#ff6666', fontSize: '12px' }}>{error}</p>}
-          <button className="cs-login-btn" onClick={checkAdminPin} style={{ padding: '14px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('selector.loginButton', 'Login')}</button>
+          {totpRequired && (
+            <input
+              className="cs-admin-pin-input"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={6}
+              value={adminTotp}
+              onChange={(e) => setAdminTotp(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && checkAdminPin()}
+              placeholder={t('selector.adminTotpPlaceholder', '2FA-kode (6 cifre)')}
+              style={{ padding: '14px 24px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', fontSize: '18px', textAlign: 'center', letterSpacing: '6px', width: '200px' }}
+              autoFocus
+            />
+          )}
+          {error && <p style={{ color: '#ff6666', fontSize: '12px', maxWidth: '260px', textAlign: 'center' }}>{error}</p>}
+          <button className="cs-login-btn" disabled={loggingIn} onClick={checkAdminPin} style={{ padding: '14px 24px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: loggingIn ? 'default' : 'pointer', opacity: loggingIn ? 0.6 : 1, fontSize: '13px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('selector.loginButton', 'Login')}</button>
         </div>
       )}
 

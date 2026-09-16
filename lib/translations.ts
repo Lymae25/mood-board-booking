@@ -28,6 +28,10 @@ export const translations: Record<Language, TranslationTree> = {
       noUsers: 'Ingen brugere endnu. Login som admin for at oprette.',
       adminLogin: 'Admin Login',
       adminPinPlaceholder: 'Admin PIN',
+      adminPasswordPlaceholder: 'Admin adgangskode',
+      adminTotpPlaceholder: '2FA-kode (6 cifre)',
+      totpRequired: 'Indtast 2FA-kode fra din authenticator-app',
+      tooManyAttempts: 'For mange forsøg. Prøv igen om lidt.',
       wrongCode: 'Forkert kode',
       loginButton: 'Login'
     },
@@ -186,6 +190,10 @@ export const translations: Record<Language, TranslationTree> = {
       noUsers: 'No users yet. Log in as admin to create one.',
       adminLogin: 'Admin Login',
       adminPinPlaceholder: 'Admin PIN',
+      adminPasswordPlaceholder: 'Admin password',
+      adminTotpPlaceholder: '2FA code (6 digits)',
+      totpRequired: 'Enter the 2FA code from your authenticator app',
+      tooManyAttempts: 'Too many attempts. Try again shortly.',
       wrongCode: 'Wrong code',
       loginButton: 'Login'
     },
@@ -344,6 +352,10 @@ export const translations: Record<Language, TranslationTree> = {
       noUsers: 'Wala pang mga user. Mag-login bilang admin para gumawa ng isa.',
       adminLogin: 'Admin Login',
       adminPinPlaceholder: 'Admin PIN',
+      adminPasswordPlaceholder: 'Admin password',
+      adminTotpPlaceholder: '2FA code (6 digits)',
+      totpRequired: 'Ilagay ang 2FA code mula sa iyong authenticator app',
+      tooManyAttempts: 'Sobrang dami ng tangka. Subukan ulit mamaya.',
       wrongCode: 'Maling code',
       loginButton: 'Mag-login'
     },

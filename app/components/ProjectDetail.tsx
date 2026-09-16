@@ -33,16 +33,28 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
   useEffect(() => { loadAll() }, [projectId])
 
   async function loadAll() {
-    const [p, s, i, tl] = await Promise.all([
-      fetch(`/api/projects`).then(r => r.json()),
+    // Fetches this one project by id instead of the entire unfiltered
+    // project list (which used to expose every customer's projects to
+    // whoever's browser was loading this page).
+    const [projectRes, s, i, tl] = await Promise.all([
+      fetch(`/api/projects/${projectId}`),
       fetch(`/api/scenes?projectId=${projectId}`).then(r => r.json()),
       fetch(`/api/ideas?projectId=${projectId}`).then(r => r.json()),
       fetch(`/api/timeline?projectId=${projectId}`).then(r => r.json())
     ])
-    setProject(p.find((x: any) => x.id === projectId))
-    setScenes(s || [])
-    setIdeas(i || [])
-    setTimeline(tl || [])
+    // No valid session for this project's customer (e.g. an old tab from
+    // before the session system existed) - there's no customerId to send
+    // them back to a PIN screen with here, so send them to pick their
+    // customer tile again instead of showing a broken-looking blank page.
+    if (isCustomerView && projectRes.status === 401) {
+      router.push('/')
+      return
+    }
+    const p = projectRes.ok ? await projectRes.json() : null
+    setProject(p)
+    setScenes(Array.isArray(s) ? s : [])
+    setIdeas(Array.isArray(i) ? i : [])
+    setTimeline(Array.isArray(tl) ? tl : [])
     setLoading(false)
   }
 

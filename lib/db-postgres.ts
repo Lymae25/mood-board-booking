@@ -6,7 +6,10 @@ export function getDb() {
   if (!sql) {
     const connectionString = process.env.DATABASE_URL
     if (!connectionString) throw new Error('DATABASE_URL not set')
-    sql = postgres(connectionString)
+    // onnotice suppresses noisy but harmless "already exists, skipping"
+    // NOTICEs from the idempotent CREATE TABLE IF NOT EXISTS calls below,
+    // which otherwise print on every single request in dev/test.
+    sql = postgres(connectionString, { onnotice: () => {} })
   }
   return sql
 }
@@ -24,6 +27,10 @@ export async function initDB() {
     await sql`CREATE TABLE IF NOT EXISTS messages ("id" TEXT PRIMARY KEY, "customerId" TEXT NOT NULL, "sender" TEXT NOT NULL, "content" TEXT NOT NULL, "sceneRef" TEXT, "projectRef" TEXT, "readByAdmin" BOOLEAN DEFAULT FALSE, "readByCustomer" BOOLEAN DEFAULT FALSE, "createdAt" TEXT)`
     await sql`ALTER TABLE messages ADD COLUMN IF NOT EXISTS "imageUrl" TEXT`
     await sql`CREATE TABLE IF NOT EXISTS meetings ("id" TEXT PRIMARY KEY, "customerId" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "meetingDate" TEXT NOT NULL, "meetingTime" TEXT NOT NULL, "duration" INTEGER, "meetingType" TEXT, "location" TEXT, "createdAt" TEXT)`
+    const { initAdminAuthSchema } = await import('./adminAuth')
+    await initAdminAuthSchema()
+    const { initCustomerAuthSchema } = await import('./customerAuth')
+    await initCustomerAuthSchema()
   } catch (e) { console.error('DB init error:', e) }
 }
 
@@ -86,6 +93,10 @@ export async function getProjectsByCustomer(customerId: string) {
   try { const sql = getDb(); return await sql`SELECT * FROM projects WHERE "customerId" = ${customerId} ORDER BY "createdAt" DESC` } catch (e) { return [] }
 }
 
+export async function getProjectById(id: string) {
+  try { const sql = getDb(); const result = await sql`SELECT * FROM projects WHERE "id" = ${id}`; return result[0] || null } catch (e) { return null }
+}
+
 export async function createProject(data: any) {
   const sql = getDb()
   const id = Date.now().toString()
@@ -114,6 +125,10 @@ export async function createScene(projectId: string, scene: any) {
   const id = Date.now().toString()
   await sql`INSERT INTO scenes ("id", "projectId", "sceneNumber", "title", "description", "imageUrl", "createdAt") VALUES (${id}, ${projectId}, ${scene.sceneNumber}, ${scene.title}, ${scene.description}, ${scene.imageUrl || ''}, ${new Date().toISOString()})`
   return { id, projectId, ...scene, createdAt: new Date().toISOString() }
+}
+
+export async function getSceneById(id: string) {
+  try { const sql = getDb(); const result = await sql`SELECT * FROM scenes WHERE "id" = ${id}`; return result[0] || null } catch (e) { return null }
 }
 
 export async function getSceneNotes(sceneId: string) {

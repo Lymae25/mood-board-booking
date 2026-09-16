@@ -25,12 +25,21 @@ export default function CustomerDashboard({ customerId }: { customerId: string }
   useEffect(() => { loadData() }, [customerId])
 
   async function loadData() {
-    const [c, p] = await Promise.all([
+    const [c, projectsRes] = await Promise.all([
       fetch('/api/customers').then(r => r.json()),
-      fetch(`/api/projects?customerId=${customerId}`).then(r => r.json())
+      fetch(`/api/projects?customerId=${customerId}`)
     ])
+    // No valid session for this customer (e.g. this tab was left open from
+    // before the session system existed, or the session expired) - send
+    // them back to the PIN screen instead of silently showing an empty
+    // "no projects yet" dashboard.
+    if (projectsRes.status === 401) {
+      router.push(`/pin/${customerId}`)
+      return
+    }
+    const p = await projectsRes.json()
     setCustomer(c.find((x: any) => x.id === customerId))
-    setProjects(p || [])
+    setProjects(Array.isArray(p) ? p : [])
     setLoading(false)
   }
 
