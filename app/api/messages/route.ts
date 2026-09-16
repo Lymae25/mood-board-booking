@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { initDB, getMessagesByCustomer, getAllMessages, createMessage, markMessagesRead, getCustomerById } from '@/lib/db-postgres'
 import { sendCustomerMessageEmail } from '@/lib/sendEmail'
+import { requireAdminSession } from '@/lib/adminAuth'
+import { requireOwnerOrAdmin } from '@/lib/customerAuth'
 
 export async function GET(request: NextRequest) {
   try {
     await initDB()
-    const admin = request.nextUrl.searchParams.get('admin')
-    if (admin === '1010') {
+    if (await requireAdminSession(request)) {
       const messages = await getAllMessages()
       return NextResponse.json(messages)
     }
     const customerId = request.nextUrl.searchParams.get('customerId')
     if (!customerId) return NextResponse.json({ error: 'customerId required' }, { status: 400 })
+    if (!(await requireOwnerOrAdmin(request, customerId))) return NextResponse.json([], { status: 401 })
     const messages = await getMessagesByCustomer(customerId)
     return NextResponse.json(messages)
   } catch (error) {
@@ -27,6 +29,15 @@ export async function POST(request: NextRequest) {
     if (!data.customerId || (!data.content && !data.imageUrl)) {
       return NextResponse.json({ error: 'customerId and content or imageUrl required' }, { status: 400 })
     }
+    // A message tagged sender: 'admin' requires an actual admin session -
+    // otherwise anyone could impersonate the studio in a customer's chat.
+    // Any other sender is only authorized as that customer's own session.
+    const isAdminSender = data.sender === 'admin'
+    const authorized = isAdminSender
+      ? await requireAdminSession(request)
+      : await requireOwnerOrAdmin(request, data.customerId)
+    if (!authorized) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
     const message = await createMessage(data)
 
     // Notify admin by email when a customer messages in. The message is
@@ -60,6 +71,10 @@ export async function PATCH(request: NextRequest) {
     await initDB()
     const data = await request.json()
     if (!data.customerId || !data.reader) return NextResponse.json({ error: 'customerId and reader required' }, { status: 400 })
+    const authorized = data.reader === 'admin'
+      ? await requireAdminSession(request)
+      : await requireOwnerOrAdmin(request, data.customerId)
+    if (!authorized) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
     const success = await markMessagesRead(data.customerId, data.reader)
     if (success) return NextResponse.json({ ok: true })
     return NextResponse.json({ error: 'Failed' }, { status: 500 })

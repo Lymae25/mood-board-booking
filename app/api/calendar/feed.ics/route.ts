@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { initDB, getProjects, getAllCustomers, getAllTimelineItems, getMeetings } from '@/lib/db-postgres'
+import { requireAdminSession, verifyCalendarToken } from '@/lib/adminAuth'
 
 function statusLabel(status: string) {
   const map: Record<string, string> = {
@@ -121,6 +122,20 @@ function buildMeetingEventLines(opts: { uid: string, dateStr: string, timeStr: s
 export async function GET(request: NextRequest) {
   try {
     await initDB()
+
+    // This feed dumps every customer's name, every project, every deadline
+    // and every meeting (with location) - it used to be reachable by
+    // anyone who had the URL. Apple/Google Calendar's ICS subscription
+    // mechanism can't send cookies, so it authenticates via a long random
+    // token in the URL itself instead (get it from
+    // GET /api/admin/calendar-token while logged in as admin), same as a
+    // valid admin session cookie would.
+    const token = request.nextUrl.searchParams.get('token')
+    const authorized = (await requireAdminSession(request)) || (await verifyCalendarToken(token))
+    if (!authorized) {
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    }
+
     const [projects, customers, timeline, meetings] = await Promise.all([
       getProjects(),
       getAllCustomers(),

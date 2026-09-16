@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { initDB, getMeetings, createMeeting } from '@/lib/db-postgres'
+import { requireAdminSession } from '@/lib/adminAuth'
 
-export async function GET() {
+// Returns every customer's meetings unfiltered - no customer-facing surface
+// calls this (confirmed by inspection), and there is no legitimate reason
+// for a customer to see another customer's schedule, so this is admin-only.
+export async function GET(request: NextRequest) {
   try {
+    if (!(await requireAdminSession(request))) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
     await initDB()
     const meetings = await getMeetings()
     return NextResponse.json(meetings)
@@ -12,8 +17,10 @@ export async function GET() {
   }
 }
 
+// Scheduling a meeting is only ever done from the admin panel.
 export async function POST(request: NextRequest) {
   try {
+    if (!(await requireAdminSession(request))) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
     await initDB()
     const data = await request.json()
     if (!data.customerId || !data.title || !data.meetingDate || !data.meetingTime) {
