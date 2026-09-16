@@ -326,7 +326,10 @@ export default function AdminPanel() {
             <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px' }}>{t('admin.title', 'ADMIN')}</h1>
             <p style={{ fontSize: '12px', color: '#999', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('admin.subtitle', 'Chrome Vault Studios')}</p>
           </div>
-          <button onClick={() => { fetch('/api/admin/logout', { method: 'POST' }).catch(() => {}).finally(() => { try { window.localStorage.removeItem('isAdmin') } catch (e) {}; router.push('/') }) }} style={{ padding: '10px 20px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', flexShrink: 0 }}>{t('common.logout', 'Log ud')}</button>
+          <div style={{ display: 'flex', gap: '10px', flexShrink: 0 }}>
+            <Link href="/admin/jarvis" style={{ padding: '10px 20px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>Jarvis</Link>
+            <button onClick={() => { fetch('/api/admin/logout', { method: 'POST' }).catch(() => {}).finally(() => { try { window.localStorage.removeItem('isAdmin') } catch (e) {}; router.push('/') }) }} style={{ padding: '10px 20px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', flexShrink: 0 }}>{t('common.logout', 'Log ud')}</button>
+          </div>
         </div>
 
         {/* View toggle */}

@@ -170,6 +170,10 @@ export const translations: Record<Language, TranslationTree> = {
       errorInvalidType: 'Filtype ikke tilladt',
       errorServer: 'Upload fejlede',
       viewPdf: 'Se PDF'
+    },
+    jarvisHud: {
+      unreachable: 'Kunne ikke få svar fra Jarvis lige nu.',
+      noSpeechSupport: 'Talegenkendelse understøttes ikke i denne browser. Prøv Chrome eller Edge.'
     }
   },
   en: {
@@ -333,6 +337,10 @@ export const translations: Record<Language, TranslationTree> = {
       errorInvalidType: 'File type not allowed',
       errorServer: 'Upload failed',
       viewPdf: 'View PDF'
+    },
+    jarvisHud: {
+      unreachable: 'Could not reach Jarvis right now.',
+      noSpeechSupport: 'Speech recognition is not supported in this browser. Try Chrome or Edge.'
     }
   },
   tl: {
@@ -496,6 +504,10 @@ export const translations: Record<Language, TranslationTree> = {
       errorInvalidType: 'Hindi pinapayagan ang file type',
       errorServer: 'Nabigo ang pag-upload',
       viewPdf: 'Tingnan ang PDF'
+    },
+    jarvisHud: {
+      unreachable: 'Hindi ma-reach si Jarvis ngayon.',
+      noSpeechSupport: 'Hindi suportado ang speech recognition sa browser na ito. Subukan ang Chrome o Edge.'
     }
   }
 }

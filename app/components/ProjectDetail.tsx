@@ -8,6 +8,13 @@ import AdminNav from './AdminNav'
 import { useTranslation } from '@/lib/useTranslation'
 import { resolveUploadUrl } from '@/lib/resolveUploadUrl'
 
+interface MoodBoardDraft {
+  id: string
+  projectId: string
+  title: string
+  description?: string
+}
+
 export default function ProjectDetail({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<any>(null)
   const [scenes, setScenes] = useState<any[]>([])
@@ -29,8 +36,31 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
   const [showTimelineForm, setShowTimelineForm] = useState(false)
   const [timelineForm, setTimelineForm] = useState({ title: '', description: '', dueDate: '', status: 'pending' })
   const [newNote, setNewNote] = useState('')
+  const [pendingDrafts, setPendingDrafts] = useState<MoodBoardDraft[]>([])
 
   useEffect(() => { loadAll() }, [projectId])
+
+  // Admin-only: pending "Save to customer" trend drafts for this project.
+  // The endpoint itself is admin-gated (401s for a customer session), so
+  // skipping the fetch entirely for a customer view is just avoiding a
+  // pointless network call, not the actual security boundary.
+  useEffect(() => {
+    if (isCustomerView) return
+    fetch('/api/mood-board-drafts')
+      .then(r => r.ok ? r.json() : [])
+      .then((drafts) => setPendingDrafts((drafts || []).filter((d: MoodBoardDraft) => d.projectId === projectId)))
+      .catch(() => setPendingDrafts([]))
+  }, [projectId, isCustomerView])
+
+  async function decideDraft(id: string, action: 'approve' | 'reject') {
+    await fetch(`/api/mood-board-drafts/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action })
+    })
+    setPendingDrafts(prev => prev.filter(d => d.id !== id))
+    if (action === 'approve') loadAll()
+  }
 
   async function loadAll() {
     // Fetches this one project by id instead of the entire unfiltered
@@ -238,6 +268,23 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
 
         {tab === 'inspo' && (
           <div>
+            {pendingDrafts.length > 0 && (
+              <div style={{ border: '1px solid #7f1d1d', padding: '20px', marginBottom: '30px' }}>
+                <h3 style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px', color: '#fca5a5' }}>Ventende trend-forslag (kun synlig for admin)</h3>
+                {pendingDrafts.map((d: MoodBoardDraft) => (
+                  <div key={d.id} style={{ border: '1px solid #333', padding: '15px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+                    <div>
+                      <p style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>{d.title}</p>
+                      <p style={{ fontSize: '11px', color: '#999' }}>{d.description}</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                      <button onClick={() => decideDraft(d.id, 'approve')} style={{ padding: '8px 14px', background: '#fff', color: '#000', border: 'none', fontSize: '10px', textTransform: 'uppercase', cursor: 'pointer' }}>Godkend</button>
+                      <button onClick={() => decideDraft(d.id, 'reject')} style={{ padding: '8px 14px', background: 'transparent', color: '#999', border: '1px solid #333', fontSize: '10px', textTransform: 'uppercase', cursor: 'pointer' }}>Afvis</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             {!showIdeaForm && <button onClick={() => setShowIdeaForm(true)} style={{ ...btnStyle, marginBottom: '30px' }}>+ {t('project.newInspiration', 'Ny Inspiration')}</button>}
             {showIdeaForm && (
               <div className="pd-form-card" style={{ border: '1px solid #333', padding: '30px', marginBottom: '30px', maxWidth: '600px' }}>
