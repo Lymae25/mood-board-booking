@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { initDB, createCustomer, createProject, deleteCustomer, getIdeas } from '@/lib/db-postgres'
+import { initDB, createCustomer, createProject, deleteCustomer, getIdeas, logJarvisAction } from '@/lib/db-postgres'
 import { createSession, SESSION_COOKIE as ADMIN_SESSION_COOKIE } from '@/lib/adminAuth'
 import { createCustomerSession, SESSION_COOKIE as CUSTOMER_SESSION_COOKIE } from '@/lib/customerAuth'
 import * as chatRoute from '@/app/api/jarvis/chat/route'
 import * as speakRoute from '@/app/api/jarvis/speak/route'
 import * as trendsRoute from '@/app/api/jarvis/trends/route'
+import * as logRoute from '@/app/api/jarvis/log/route'
 import * as draftsRoute from '@/app/api/mood-board-drafts/route'
 import * as draftByIdRoute from '@/app/api/mood-board-drafts/[id]/route'
 import { NextRequest } from 'next/server'
@@ -43,6 +44,11 @@ d('every Jarvis route requires an admin session', () => {
 
   it('GET /api/jarvis/trends requires admin', async () => {
     const res = await trendsRoute.GET(req('http://localhost/api/jarvis/trends'))
+    expect(res.status).toBe(401)
+  })
+
+  it('GET /api/jarvis/log requires admin', async () => {
+    const res = await logRoute.GET(req('http://localhost/api/jarvis/log'))
     expect(res.status).toBe(401)
   })
 
@@ -107,6 +113,18 @@ d('a valid admin session can reach every Jarvis route (demo mode, no real Jarvis
     for (const field of ['url', 'platform', 'title', 'author', 'thumbnail_url', 'embed_type', 'posted_at', 'verified_at']) {
       expect(video).toHaveProperty(field)
     }
+  })
+
+  it('GET /api/jarvis/log returns logged actions, newest first', async () => {
+    await logJarvisAction('chat', 'test entry 1')
+    await new Promise((r) => setTimeout(r, 5))
+    await logJarvisAction('chat', 'test entry 2')
+    const res = await logRoute.GET(req('http://localhost/api/jarvis/log', { cookie: `${ADMIN_SESSION_COOKIE}=${token}` }))
+    expect(res.status).toBe(200)
+    const entries = await res.json()
+    expect(Array.isArray(entries)).toBe(true)
+    expect(entries[0].detail).toBe('test entry 2')
+    expect(entries[1].detail).toBe('test entry 1')
   })
 })
 

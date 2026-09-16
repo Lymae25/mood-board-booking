@@ -42,6 +42,13 @@ interface Project {
   name: string
 }
 
+interface JarvisLogEntry {
+  id: string
+  action: string
+  detail: string | null
+  createdAt: string
+}
+
 // Minimal shape for the Web Speech API's SpeechRecognition, which is not
 // part of TypeScript's standard DOM lib. Typed narrowly enough to satisfy
 // the linter without pulling in a third-party lib.dom extension.
@@ -86,6 +93,9 @@ export default function JarvisHud() {
   const [saveProjects, setSaveProjects] = useState<Project[]>([])
   const [saveProjectId, setSaveProjectId] = useState('')
   const [saveStatus, setSaveStatus] = useState('')
+  const [showLog, setShowLog] = useState(false)
+  const [logEntries, setLogEntries] = useState<JarvisLogEntry[]>([])
+  const [logLoading, setLogLoading] = useState(false)
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const scriptLoadedRef = useRef(false)
   const { t } = useTranslation()
@@ -274,6 +284,27 @@ export default function JarvisHud() {
     }
   }
 
+  // Del D: admin-only activity log (chat turns, trend saves, draft
+  // approvals/rejections - see logJarvisAction() calls in the API routes).
+  // Lazy-loaded on first expand rather than on mount, since most admins
+  // won't open it every visit.
+  async function toggleLog() {
+    const next = !showLog
+    setShowLog(next)
+    if (next && logEntries.length === 0) {
+      setLogLoading(true)
+      try {
+        const res = await fetch('/api/jarvis/log')
+        const data = await res.json()
+        setLogEntries(Array.isArray(data) ? data : [])
+      } catch {
+        setLogEntries([])
+      } finally {
+        setLogLoading(false)
+      }
+    }
+  }
+
   const ringColor = { idle: '#666', listening: '#4ade80', thinking: '#60a5fa', speaking: '#f472b6' }[hudState]
 
   return (
@@ -385,6 +416,25 @@ export default function JarvisHud() {
           ))}
           {trends.length === 0 && <p style={{ color: '#555' }}>Ingen trends fundet endnu.</p>}
         </div>
+
+        <button onClick={toggleLog} style={{ marginBottom: '16px', padding: '10px 20px', background: 'transparent', border: '1px solid #333', color: '#999', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', cursor: 'pointer' }}>
+          {showLog ? '▾' : '▸'} Aktivitetslog
+        </button>
+        {showLog && (
+          <div style={{ border: '1px solid #222', padding: '16px', marginBottom: '60px', maxHeight: '360px', overflowY: 'auto' }}>
+            {logLoading && <p style={{ color: '#555', fontSize: '12px' }}>Indlæser...</p>}
+            {!logLoading && logEntries.length === 0 && <p style={{ color: '#555', fontSize: '12px' }}>Ingen aktivitet endnu.</p>}
+            {!logLoading && logEntries.map((entry) => (
+              <div key={entry.id} style={{ borderBottom: '1px solid #222', padding: '10px 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{entry.action}</span>
+                  <span style={{ fontSize: '10px', color: '#666' }}>{new Date(entry.createdAt).toLocaleString('da-DK')}</span>
+                </div>
+                {entry.detail && <p style={{ fontSize: '11px', color: '#999', marginTop: '4px', wordBreak: 'break-word' }}>{entry.detail}</p>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {saveTarget && (

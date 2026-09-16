@@ -257,6 +257,24 @@ schema, field for field. What changed:
   trends` with no session returns `401` - both against the actual running
   server, not just the route handler in isolation.
 
+## Del D.2: admin view of the Jarvis log (same branch)
+
+Added on this same branch, not a separate one - the task description put
+this under "Del D... på jarvis-control-v2".
+
+- `app/api/jarvis/log/route.ts` - `GET`, admin-only, returns
+  `getJarvisActionLog()` (already added in Del C, above), newest first,
+  `?limit=` capped to 500.
+- `JarvisHud.tsx` - a collapsible "Aktivitetslog" section under the trends
+  grid, lazy-loaded on first expand (not on page load - most admin visits
+  won't open it). Shows action, detail and timestamp for every logged
+  chat turn, trend save, and draft approval/rejection.
+- **2 new tests**: `GET /api/jarvis/log` requires admin (`401` without a
+  session), and returns logged entries newest-first with a real admin
+  session. `npm test`: **56/56 passing**. Build and lint re-run clean
+  (same zero-new-errors, pattern-consistent-warnings-only result as Del C
+  above - re-verified, not assumed, after this addition).
+
 ## What you need to decide/do
 
 - Nothing merges or deploys on its own. When you're ready to actually wire
