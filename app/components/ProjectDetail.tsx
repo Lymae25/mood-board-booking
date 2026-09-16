@@ -36,12 +36,21 @@ export default function ProjectDetail({ projectId }: { projectId: string }) {
     // Fetches this one project by id instead of the entire unfiltered
     // project list (which used to expose every customer's projects to
     // whoever's browser was loading this page).
-    const [p, s, i, tl] = await Promise.all([
-      fetch(`/api/projects/${projectId}`).then(r => r.ok ? r.json() : null),
+    const [projectRes, s, i, tl] = await Promise.all([
+      fetch(`/api/projects/${projectId}`),
       fetch(`/api/scenes?projectId=${projectId}`).then(r => r.json()),
       fetch(`/api/ideas?projectId=${projectId}`).then(r => r.json()),
       fetch(`/api/timeline?projectId=${projectId}`).then(r => r.json())
     ])
+    // No valid session for this project's customer (e.g. an old tab from
+    // before the session system existed) - there's no customerId to send
+    // them back to a PIN screen with here, so send them to pick their
+    // customer tile again instead of showing a broken-looking blank page.
+    if (isCustomerView && projectRes.status === 401) {
+      router.push('/')
+      return
+    }
+    const p = projectRes.ok ? await projectRes.json() : null
     setProject(p)
     setScenes(Array.isArray(s) ? s : [])
     setIdeas(Array.isArray(i) ? i : [])

@@ -95,14 +95,22 @@ async function main() {
 
   const sql = postgres(connectionString)
   try {
+    // Same shape as lib/adminAuth.ts's initAdminAuthSchema() - this script
+    // runs as plain `node`, not through Next.js, so it can't import that
+    // TypeScript module directly and keeps its own copy. Works against a
+    // completely empty database: this is the only thing that needs to
+    // exist before the app's own initDB() ever runs, which is exactly the
+    // case right after a fresh deploy, before the admin password is set.
     await sql`CREATE TABLE IF NOT EXISTS admin_auth (
       "id" TEXT PRIMARY KEY,
       "passwordHash" TEXT NOT NULL,
       "totpSecret" TEXT,
       "totpEnabled" BOOLEAN DEFAULT FALSE,
+      "calendarToken" TEXT,
       "createdAt" TEXT,
       "updatedAt" TEXT
     )`
+    await sql`ALTER TABLE admin_auth ADD COLUMN IF NOT EXISTS "calendarToken" TEXT`
     const hash = await hashPassword(password)
     const now = new Date().toISOString()
     const existing = await sql`SELECT "id" FROM admin_auth WHERE "id" = 'singleton'`
