@@ -10,7 +10,7 @@ const ERROR_KEYS: Record<string, string> = {
   server_error: 'upload.errorServer'
 }
 
-export default function FileUploader({ value, onUploaded, accept = 'image/*,video/mp4,video/quicktime' }: { value?: string, onUploaded: (url: string) => void, accept?: string }) {
+export default function FileUploader({ value, onUploaded, accept = 'image/*,application/pdf' }: { value?: string, onUploaded: (url: string) => void, accept?: string }) {
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState('')
@@ -58,6 +58,7 @@ export default function FileUploader({ value, onUploaded, accept = 'image/*,vide
   }
 
   const isVideo = value ? /\.(mp4|mov)(\?.*)?$/i.test(value) : false
+  const isPdf = value ? /\.pdf(\?.*)?$/i.test(value) : false
 
   return (
     <div style={{ marginBottom: '15px' }}>
@@ -85,6 +86,8 @@ export default function FileUploader({ value, onUploaded, accept = 'image/*,vide
         ) : value ? (
           isVideo ? (
             <video src={resolveUploadUrl(value)} style={{ maxWidth: '100%', maxHeight: '200px' }} controls />
+          ) : isPdf ? (
+            <a href={resolveUploadUrl(value)} target="_blank" rel="noopener noreferrer" style={{ color: '#999', fontSize: '12px', textDecoration: 'underline' }}>{t('upload.viewPdf', 'Se PDF')}</a>
           ) : (
             <img src={resolveUploadUrl(value)} alt="" style={{ maxWidth: '100%', maxHeight: '200px' }} />
           )
