@@ -94,7 +94,7 @@ export default function AdminPanel() {
   }
 
   async function loadMessages() {
-    const res = await fetch('/api/messages?admin=1010')
+    const res = await fetch('/api/messages')
     const data = await res.json()
     setMessages(data || [])
   }
@@ -132,9 +132,9 @@ export default function AdminPanel() {
 
   async function loadData() {
     const [c, p, t, m] = await Promise.all([
-      fetch('/api/customers?admin=1010').then(r => r.json()),
+      fetch('/api/customers').then(r => r.json()),
       fetch('/api/projects').then(r => r.json()),
-      fetch('/api/timeline?admin=1010').then(r => r.json()),
+      fetch('/api/timeline').then(r => r.json()),
       fetch('/api/meetings').then(r => r.json())
     ])
     setCustomers(c || [])
@@ -326,7 +326,7 @@ export default function AdminPanel() {
             <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px' }}>{t('admin.title', 'ADMIN')}</h1>
             <p style={{ fontSize: '12px', color: '#999', letterSpacing: '1px', textTransform: 'uppercase' }}>{t('admin.subtitle', 'Chrome Vault Studios')}</p>
           </div>
-          <button onClick={() => { try { window.localStorage.removeItem('isAdmin') } catch (e) {}; router.push('/') }} style={{ padding: '10px 20px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', flexShrink: 0 }}>{t('common.logout', 'Log ud')}</button>
+          <button onClick={() => { fetch('/api/admin/logout', { method: 'POST' }).catch(() => {}).finally(() => { try { window.localStorage.removeItem('isAdmin') } catch (e) {}; router.push('/') }) }} style={{ padding: '10px 20px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', flexShrink: 0 }}>{t('common.logout', 'Log ud')}</button>
         </div>
 
         {/* View toggle */}

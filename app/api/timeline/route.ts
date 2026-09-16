@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { initDB, getTimeline, getAllTimelineItems, createTimelineItem } from '@/lib/db-postgres'
+import { requireAdminSession } from '@/lib/adminAuth'
 
 export async function GET(request: NextRequest) {
   try {
     await initDB()
-    const admin = request.nextUrl.searchParams.get('admin')
-    if (admin === '1010') {
+    if (await requireAdminSession(request)) {
       const timeline = await getAllTimelineItems()
       return NextResponse.json(timeline)
     }

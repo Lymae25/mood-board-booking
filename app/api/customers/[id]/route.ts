@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { deleteCustomer, updateCustomerPin, initDB } from '@/lib/db-postgres'
+import { requireAdminSession } from '@/lib/adminAuth'
 
+// Deleting a customer (and cascading their projects) is admin-only.
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    if (!(await requireAdminSession(request))) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
     const { id } = await params
     await initDB()
     const success = await deleteCustomer(id)

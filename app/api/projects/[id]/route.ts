@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { deleteProject, initDB, getDb } from '@/lib/db-postgres'
+import { requireAdminSession } from '@/lib/adminAuth'
 
+// Deleting a whole project is admin-only. PATCH (status/endDate) stays open -
+// customers legitimately update their own project's status from their
+// dashboard (see StatusBadge.tsx, used un-gated in CustomerDashboard.tsx).
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    if (!(await requireAdminSession(request))) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
     const { id } = await params
     await initDB()
     const success = await deleteProject(id)

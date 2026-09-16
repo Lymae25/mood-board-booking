@@ -6,7 +6,10 @@ export function getDb() {
   if (!sql) {
     const connectionString = process.env.DATABASE_URL
     if (!connectionString) throw new Error('DATABASE_URL not set')
-    sql = postgres(connectionString)
+    // onnotice suppresses noisy but harmless "already exists, skipping"
+    // NOTICEs from the idempotent CREATE TABLE IF NOT EXISTS calls below,
+    // which otherwise print on every single request in dev/test.
+    sql = postgres(connectionString, { onnotice: () => {} })
   }
   return sql
 }
@@ -24,6 +27,10 @@ export async function initDB() {
     await sql`CREATE TABLE IF NOT EXISTS messages ("id" TEXT PRIMARY KEY, "customerId" TEXT NOT NULL, "sender" TEXT NOT NULL, "content" TEXT NOT NULL, "sceneRef" TEXT, "projectRef" TEXT, "readByAdmin" BOOLEAN DEFAULT FALSE, "readByCustomer" BOOLEAN DEFAULT FALSE, "createdAt" TEXT)`
     await sql`ALTER TABLE messages ADD COLUMN IF NOT EXISTS "imageUrl" TEXT`
     await sql`CREATE TABLE IF NOT EXISTS meetings ("id" TEXT PRIMARY KEY, "customerId" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "meetingDate" TEXT NOT NULL, "meetingTime" TEXT NOT NULL, "duration" INTEGER, "meetingType" TEXT, "location" TEXT, "createdAt" TEXT)`
+    await sql`CREATE TABLE IF NOT EXISTS moodBoardDrafts ("id" TEXT PRIMARY KEY, "customerId" TEXT NOT NULL, "projectId" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT, "sourceUrl" TEXT, "thumbnailUrl" TEXT, "category" TEXT NOT NULL DEFAULT 'Trend', "status" TEXT NOT NULL DEFAULT 'draft', "createdAt" TEXT NOT NULL, "approvedAt" TEXT)`
+    await sql`CREATE TABLE IF NOT EXISTS jarvisActionLog ("id" TEXT PRIMARY KEY, "action" TEXT NOT NULL, "detail" TEXT, "createdAt" TEXT NOT NULL)`
+    const { initAdminAuthSchema } = await import('./adminAuth')
+    await initAdminAuthSchema()
   } catch (e) { console.error('DB init error:', e) }
 }
 
@@ -203,4 +210,55 @@ export async function deleteMeeting(id: string) {
     await sql`DELETE FROM meetings WHERE "id" = ${id}`
     return true
   } catch (e) { console.error('deleteMeeting error:', e); return false }
+}
+
+// ---------- Mood board drafts (Jarvis trend-scout "save to customer") ----------
+// Drafts are admin-only until approved - never exposed through any
+// customer-facing route (see app/api/mood-board-drafts). Approval copies
+// the draft into the existing customer-visible "ideas" table so the
+// customer PIN dashboard needs no changes to display it.
+export async function createMoodBoardDraft(data: { customerId: string; projectId: string; title: string; description?: string; sourceUrl?: string; thumbnailUrl?: string; category?: string }) {
+  const sql = getDb()
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const createdAt = new Date().toISOString()
+  await sql`INSERT INTO moodBoardDrafts ("id", "customerId", "projectId", "title", "description", "sourceUrl", "thumbnailUrl", "category", "status", "createdAt") VALUES (${id}, ${data.customerId}, ${data.projectId}, ${data.title}, ${data.description || ''}, ${data.sourceUrl || ''}, ${data.thumbnailUrl || ''}, ${data.category || 'Trend'}, 'draft', ${createdAt})`
+  return { id, status: 'draft', createdAt, ...data }
+}
+
+export async function getMoodBoardDrafts() {
+  try { const sql = getDb(); return await sql`SELECT * FROM moodBoardDrafts WHERE "status" = 'draft' ORDER BY "createdAt" DESC` } catch (e) { return [] }
+}
+
+export async function approveMoodBoardDraft(id: string) {
+  try {
+    const sql = getDb()
+    const rows = await sql`SELECT * FROM moodBoardDrafts WHERE "id" = ${id} AND "status" = 'draft'`
+    const draft = rows[0]
+    if (!draft) return false
+    const now = new Date().toISOString()
+    await sql`UPDATE moodBoardDrafts SET "status" = 'approved', "approvedAt" = ${now} WHERE "id" = ${id}`
+    await createIdea(draft.projectId, { title: draft.title, description: draft.description, imageUrl: draft.thumbnailUrl, category: draft.category })
+    return true
+  } catch (e) { console.error('approveMoodBoardDraft error:', e); return false }
+}
+
+export async function rejectMoodBoardDraft(id: string) {
+  try {
+    const sql = getDb()
+    await sql`UPDATE moodBoardDrafts SET "status" = 'rejected' WHERE "id" = ${id}`
+    return true
+  } catch (e) { console.error('rejectMoodBoardDraft error:', e); return false }
+}
+
+// ---------- Jarvis action log (admin/jarvis surface only) ----------
+export async function logJarvisAction(action: string, detail?: string) {
+  try {
+    const sql = getDb()
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    await sql`INSERT INTO jarvisActionLog ("id", "action", "detail", "createdAt") VALUES (${id}, ${action}, ${detail || ''}, ${new Date().toISOString()})`
+  } catch (e) { console.error('logJarvisAction error:', e) }
+}
+
+export async function getJarvisActionLog(limit = 100) {
+  try { const sql = getDb(); return await sql`SELECT * FROM jarvisActionLog ORDER BY "createdAt" DESC LIMIT ${limit}` } catch (e) { return [] }
 }

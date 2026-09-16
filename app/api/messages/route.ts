@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { initDB, getMessagesByCustomer, getAllMessages, createMessage, markMessagesRead, getCustomerById } from '@/lib/db-postgres'
 import { sendCustomerMessageEmail } from '@/lib/sendEmail'
+import { requireAdminSession } from '@/lib/adminAuth'
 
 export async function GET(request: NextRequest) {
   try {
     await initDB()
-    const admin = request.nextUrl.searchParams.get('admin')
-    if (admin === '1010') {
+    if (await requireAdminSession(request)) {
       const messages = await getAllMessages()
       return NextResponse.json(messages)
     }

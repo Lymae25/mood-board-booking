@@ -28,6 +28,10 @@ export const translations: Record<Language, TranslationTree> = {
       noUsers: 'Ingen brugere endnu. Login som admin for at oprette.',
       adminLogin: 'Admin Login',
       adminPinPlaceholder: 'Admin PIN',
+      adminPasswordPlaceholder: 'Admin adgangskode',
+      adminTotpPlaceholder: '2FA-kode (6 cifre)',
+      totpRequired: 'Indtast 2FA-kode fra din authenticator-app',
+      tooManyAttempts: 'For mange forsøg. Prøv igen om lidt.',
       wrongCode: 'Forkert kode',
       loginButton: 'Login'
     },
@@ -165,6 +169,10 @@ export const translations: Record<Language, TranslationTree> = {
       errorTooLarge: 'Filen er for stor (max 10MB)',
       errorInvalidType: 'Filtype ikke tilladt',
       errorServer: 'Upload fejlede'
+    },
+    jarvisHud: {
+      unreachable: 'Kunne ikke få svar fra Jarvis lige nu.',
+      noSpeechSupport: 'Talegenkendelse understøttes ikke i denne browser. Prøv Chrome eller Edge.'
     }
   },
   en: {
@@ -186,6 +194,10 @@ export const translations: Record<Language, TranslationTree> = {
       noUsers: 'No users yet. Log in as admin to create one.',
       adminLogin: 'Admin Login',
       adminPinPlaceholder: 'Admin PIN',
+      adminPasswordPlaceholder: 'Admin password',
+      adminTotpPlaceholder: '2FA code (6 digits)',
+      totpRequired: 'Enter the 2FA code from your authenticator app',
+      tooManyAttempts: 'Too many attempts. Try again shortly.',
       wrongCode: 'Wrong code',
       loginButton: 'Login'
     },
@@ -323,6 +335,10 @@ export const translations: Record<Language, TranslationTree> = {
       errorTooLarge: 'File is too large (max 10MB)',
       errorInvalidType: 'File type not allowed',
       errorServer: 'Upload failed'
+    },
+    jarvisHud: {
+      unreachable: 'Could not reach Jarvis right now.',
+      noSpeechSupport: 'Speech recognition is not supported in this browser. Try Chrome or Edge.'
     }
   },
   tl: {
@@ -344,6 +360,10 @@ export const translations: Record<Language, TranslationTree> = {
       noUsers: 'Wala pang mga user. Mag-login bilang admin para gumawa ng isa.',
       adminLogin: 'Admin Login',
       adminPinPlaceholder: 'Admin PIN',
+      adminPasswordPlaceholder: 'Admin password',
+      adminTotpPlaceholder: '2FA code (6 digits)',
+      totpRequired: 'Ilagay ang 2FA code mula sa iyong authenticator app',
+      tooManyAttempts: 'Sobrang dami ng tangka. Subukan ulit mamaya.',
       wrongCode: 'Maling code',
       loginButton: 'Mag-login'
     },
@@ -481,6 +501,10 @@ export const translations: Record<Language, TranslationTree> = {
       errorTooLarge: 'Masyadong malaki ang file (max 10MB)',
       errorInvalidType: 'Hindi pinapayagan ang file type',
       errorServer: 'Nabigo ang pag-upload'
+    },
+    jarvisHud: {
+      unreachable: 'Hindi ma-reach si Jarvis ngayon.',
+      noSpeechSupport: 'Hindi suportado ang speech recognition sa browser na ito. Subukan ang Chrome o Edge.'
     }
   }
 }
