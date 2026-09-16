@@ -46,6 +46,10 @@ export default function AdminPanel() {
   const [sendingReply, setSendingReply] = useState(false)
   const [timeline, setTimeline] = useState<any[]>([])
   const [calendarMonth, setCalendarMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
+  const [calendarLinkUrl, setCalendarLinkUrl] = useState('')
+  const [calendarLinkLoading, setCalendarLinkLoading] = useState(false)
+  const [calendarLinkCopied, setCalendarLinkCopied] = useState(false)
+  const [calendarLinkError, setCalendarLinkError] = useState('')
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [meetings, setMeetings] = useState<any[]>([])
   const [showMeetingForm, setShowMeetingForm] = useState(false)
@@ -168,6 +172,38 @@ export default function AdminPanel() {
   function nextMonth() {
     setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))
     setSelectedDate(null)
+  }
+
+  // Del D: a button that fetches the calendar subscribe link, instead of
+  // having to open GET /api/admin/calendar-token directly in the browser.
+  async function fetchCalendarLink(regenerate: boolean) {
+    setCalendarLinkLoading(true)
+    setCalendarLinkError('')
+    setCalendarLinkCopied(false)
+    try {
+      const res = await fetch('/api/admin/calendar-token', { method: regenerate ? 'DELETE' : 'GET' })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.url) {
+        setCalendarLinkUrl(data.url)
+      } else {
+        setCalendarLinkError(data.error === 'admin_not_configured' ? 'Admin er ikke sat op endnu' : 'Kunne ikke hente kalender-link')
+      }
+    } catch {
+      setCalendarLinkError('Kunne ikke hente kalender-link')
+    } finally {
+      setCalendarLinkLoading(false)
+    }
+  }
+
+  async function copyCalendarLink() {
+    try {
+      await navigator.clipboard.writeText(calendarLinkUrl)
+      setCalendarLinkCopied(true)
+      setTimeout(() => setCalendarLinkCopied(false), 2000)
+    } catch {
+      // Clipboard API unavailable (e.g. non-HTTPS context) - the link is
+      // still shown as selectable text, so this isn't a hard failure.
+    }
   }
 
   function getMonthGrid(monthDate: Date) {
@@ -665,6 +701,26 @@ export default function AdminPanel() {
               <button onClick={prevMonth} style={{ padding: '10px 18px', minWidth: '44px', minHeight: '44px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', cursor: 'pointer', fontSize: '14px' }}>←</button>
               <h2 style={{ fontSize: '18px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase', textAlign: 'center' }}>{monthLabel}</h2>
               <button onClick={nextMonth} style={{ padding: '10px 18px', minWidth: '44px', minHeight: '44px', backgroundColor: 'transparent', border: '1px solid #333', color: '#fff', cursor: 'pointer', fontSize: '14px' }}>→</button>
+            </div>
+
+            {/* Calendar subscribe link */}
+            <div style={{ border: '1px solid #333', padding: '16px 20px', marginBottom: '25px' }}>
+              {!calendarLinkUrl && (
+                <button onClick={() => fetchCalendarLink(false)} disabled={calendarLinkLoading} style={{ padding: '10px 20px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: calendarLinkLoading ? 'default' : 'pointer', opacity: calendarLinkLoading ? 0.6 : 1, fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                  {calendarLinkLoading ? 'Henter...' : 'Hent kalender-link'}
+                </button>
+              )}
+              {calendarLinkError && <p style={{ color: '#ff6666', fontSize: '12px', marginTop: '10px' }}>{calendarLinkError}</p>}
+              {calendarLinkUrl && (
+                <div>
+                  <p style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Kalender-link (til Apple/Google Kalender-abonnement)</p>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <input readOnly value={calendarLinkUrl} onFocus={(e) => e.target.select()} style={{ flex: 1, minWidth: '240px', padding: '10px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', fontSize: '12px' }} />
+                    <button onClick={copyCalendarLink} style={{ padding: '10px 16px', backgroundColor: '#fff', border: 'none', color: '#000', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{calendarLinkCopied ? 'Kopieret!' : 'Kopiér'}</button>
+                    <button onClick={() => fetchCalendarLink(true)} disabled={calendarLinkLoading} style={{ padding: '10px 16px', backgroundColor: 'transparent', border: '1px solid #333', color: '#999', cursor: 'pointer', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase' }} title="Ugyldiggør det gamle link og lav et nyt">Ny link</button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Legend */}

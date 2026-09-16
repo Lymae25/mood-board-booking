@@ -124,3 +124,40 @@ DATABASE_URL=postgres://postgres:localdevpass@localhost:5432/mbb_dev npm run dev
 - Calendar subscribe URL: log in as admin in the browser, then open
   `GET /api/admin/calendar-token` in the same session to get the current
   tokenized URL.
+
+---
+
+# Del D.1: calendar-link button (branch `calendar-button`, off `main`)
+
+Written during the overnight autonomous task (2026-09-17, see `~/jarvis`'s
+`STATUS.md`/`MIGRATION-PLAN.md` for the rest of that task). **Not merged,
+not deployed.**
+
+Replaces the manual "open `/api/admin/calendar-token` directly in the
+browser" step above with a button in the admin panel's Calendar tab
+(`AdminPanel.tsx`): "Hent kalender-link" calls the existing
+`GET /api/admin/calendar-token` route (unchanged - no backend changes at
+all, this is a pure UI addition), shows the URL in a selectable/read-only
+input with a one-click "Kopiér" (clipboard) button, and a "Ny link" button
+that calls the existing `DELETE` (regenerate) endpoint. No new API routes,
+no new env vars, no new dependencies.
+
+**Tested locally:**
+- `npm test`: 39/39 passing (this branch is off `main`, so it's `main`'s
+  own baseline test count - no new tests were added since this is a thin
+  UI wrapper around an already-tested existing endpoint, not new
+  server-side logic).
+- `npm run build`: succeeds.
+- `npm run lint`: **zero difference from `main`'s own baseline**, checked
+  file-by-file (not just eyeballing the total), since `AdminPanel.tsx`
+  already had a large pre-existing set of `any`/`<img>` lint issues and I
+  wanted to confirm my addition introduced none of its own.
+- Manually smoke-tested against a running `next dev`: `/admin` redirects
+  without a session (`307`), `/api/admin/calendar-token` still requires
+  admin (`401`) - confirms the branch compiles and serves correctly, on
+  top of the existing, unmodified auth.
+
+**What you need to do:** nothing yet - review the branch, and if you're
+happy with it, merge and deploy whenever you want the button live. It
+changes nothing about who can get the calendar link (same
+`requireAdminSession()` gate as before) - purely a convenience.
