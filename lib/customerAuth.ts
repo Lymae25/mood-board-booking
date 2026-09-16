@@ -81,6 +81,18 @@ export async function requireOwnerOrAdmin(request: Request, customerId: string |
   return sessionCustomerId === customerId
 }
 
+// Looser guard for routes that aren't scoped to one specific customerId at
+// the point of the request itself (e.g. file upload, which just returns a
+// URL - it's only "attached" to a customer's data by whatever protected
+// route the client calls next with that URL). True for a logged-in admin,
+// or ANY logged-in customer - false for an anonymous visitor.
+export async function requireAnyAuthenticatedSession(request: Request): Promise<boolean> {
+  if (await requireAdminSession(request)) return true
+  const token = getCustomerSessionTokenFromRequest(request)
+  const sessionCustomerId = await verifyCustomerSession(token)
+  return sessionCustomerId !== null
+}
+
 // ---------- PIN brute-force protection ----------
 // 4 digits is only 10,000 combinations - /api/verify-pin previously had no
 // rate limiting at all. Same shape as adminAuth's login rate limiting.

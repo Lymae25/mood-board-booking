@@ -168,7 +168,8 @@ export const translations: Record<Language, TranslationTree> = {
       errorNoFile: 'Ingen fil modtaget',
       errorTooLarge: 'Filen er for stor (max 10MB)',
       errorInvalidType: 'Filtype ikke tilladt',
-      errorServer: 'Upload fejlede'
+      errorServer: 'Upload fejlede',
+      viewPdf: 'Se PDF'
     }
   },
   en: {
@@ -330,7 +331,8 @@ export const translations: Record<Language, TranslationTree> = {
       errorNoFile: 'No file received',
       errorTooLarge: 'File is too large (max 10MB)',
       errorInvalidType: 'File type not allowed',
-      errorServer: 'Upload failed'
+      errorServer: 'Upload failed',
+      viewPdf: 'View PDF'
     }
   },
   tl: {
@@ -492,7 +494,8 @@ export const translations: Record<Language, TranslationTree> = {
       errorNoFile: 'Walang natanggap na file',
       errorTooLarge: 'Masyadong malaki ang file (max 10MB)',
       errorInvalidType: 'Hindi pinapayagan ang file type',
-      errorServer: 'Nabigo ang pag-upload'
+      errorServer: 'Nabigo ang pag-upload',
+      viewPdf: 'Tingnan ang PDF'
     }
   }
 }
