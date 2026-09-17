@@ -690,3 +690,99 @@ directory`). Per instructions, OrbStack was **not** started. This means:
   just the old separate fetches), that would point at the DB layer itself
   rather than the client - worth a first check with `SELECT count(*) FROM
   customers` / `projects` directly against the local DB.
+
+---
+
+# 2026-09-17: Del B - Små rettelser på jarvis-control-v2
+
+Same session, same environment caveat as Del A above (no Docker/OrbStack -
+`npm test` and `next dev` not run this session either).
+
+## What's done
+
+1. **AdminNav hydration warning, fixed.** Root cause: `AdminNav.tsx` read
+   `localStorage` (`readIsAdmin()`) directly inside a `useState` lazy
+   initializer, which runs during render. The server always renders with no
+   `localStorage` (`isAdmin` = `false` → the bar renders `null`), but on the
+   client's *first* render during hydration, that same initializer now sees
+   the real value - so whenever an admin actually has `isAdmin=true` stored,
+   the client's very first render produces the actual nav bar while the
+   server's HTML was `null`. That mismatch is exactly what caused the
+   dev-only red "1 Issue" badge. The previous comment here reasoned that
+   callers always gate `AdminNav` behind a loading screen so this couldn't
+   happen - true for `ProjectDetail`/`CustomerDashboard`, but not for
+   `JarvisHud`, which renders `<AdminNav>` immediately with no such gate.
+   Fixed by starting `isAdmin` at `false` on both server and client, and
+   only reading `localStorage` in a `useEffect` after mount (same pattern
+   already used elsewhere in this codebase, e.g. `useReducedMotion` in
+   `jarvis-hud/hooks.ts`) - the bar now appears one frame later on the
+   client instead of mismatching the server's output. **You need to**:
+   confirm in a real browser (once the DB is up) that the "1 Issue" badge
+   is gone on `/admin/jarvis` specifically, since that's the page that
+   actually exercises the un-gated code path.
+2. **Admin UI for TOTP 2FA**, on top of the existing `POST`/`PUT`/`DELETE
+   /api/admin/totp` routes (already admin-session-gated, already had pure
+   TOTP-math unit tests in `tests/adminAuth.test.ts`, but no admin UI and no
+   route-level test coverage before this):
+   - New `app/components/TotpSettings.tsx`, wired into `AdminPanel.tsx` as
+     a new "Sikkerhed" tab. Three states: **off** (a "Slå 2FA til" button),
+     **enrolling** (QR code + manual-entry secret + a 6-digit confirm
+     field), **on** (status + a "Slå 2FA fra" button with a confirm
+     dialog).
+   - The QR code is generated **fully client-side** from the `otpauth://`
+     URI using the `qrcode` npm package (`QRCode.toDataURL()`) - no
+     third-party QR-image service is called, which matters here because
+     the URI embeds the actual TOTP secret; sending that to an external
+     API would leak it. `qrcode` + `@types/qrcode` added as real
+     dependencies (`npm view` confirmed registry access first). `npm
+     audit` shows 5 pre-existing vulnerabilities, all in the `vitest`/
+     `vite` dev-toolchain dependency chain (moderate/high/critical) -
+     **none introduced by `qrcode` itself** and out of scope for this task
+     (a `--force` fix would be a breaking devDependency change nobody
+     asked for).
+   - `GET /api/admin/session` (already existed, used elsewhere to check
+     "am I still logged in") now also returns `totpEnabled: boolean`
+     (reading the existing `admin_auth.totpEnabled` column via
+     `getAdminAuth()`), so the settings UI knows which state to render on
+     load without a second bespoke endpoint.
+   - Danish, English and Tagalog strings added to `lib/translations.ts`
+     under `admin.totp*`/`admin.tabSecurity` (this app is otherwise
+     i18n'd via `useTranslation()`, so hardcoding only-Danish text here
+     would have shown Danish to English/Tagalog admins - `t(key,
+     fallback)` only falls back to the given string when the key is
+     missing for *any* language, not just Danish).
+   - New test file `tests/totpRoutes.test.ts` (same real-Postgres pattern
+     as `tests/adminAuthDb.test.ts`): every TOTP route requires an admin
+     session; `GET /api/admin/session` reports `totpEnabled: false` before
+     enrolling; confirming with a wrong code is rejected (400); and a full
+     enroll → confirm-with-a-real-computed-code → verify-enabled →
+     disable → verify-disabled round trip, using the same independent
+     RFC 6238 reference implementation already used in
+     `tests/adminAuth.test.ts` to compute a real code from the returned
+     secret (not a login-flow simulation - a genuine, independently-
+     computed valid TOTP code). **Not run this session** - no DB.
+3. **Test, build, lint**:
+   - `npx tsc --noEmit`: clean.
+   - `npm run build`: succeeds, `/api/admin/totp` and `/api/admin/session`
+     both listed in the route manifest.
+   - `npm run lint`: diffed against this branch's own baseline with line
+     numbers stripped out (not just the total count) - **zero new errors,
+     zero new warnings**. One new `eslint-disable-next-line
+     react-hooks/set-state-in-effect` was needed on `AdminNav`'s new
+     effect (same rule, same suppression pattern already used on the
+     pre-existing effects in `hooks.ts`/`Panels.tsx`/`JarvisHud.tsx` - not
+     a new category of suppression for this codebase).
+   - `npm test`: **not run** - no local Postgres this session. The new
+     `tests/totpRoutes.test.ts` needs a real run once the DB is available,
+     same as Del A's new test.
+
+## What you need to decide/do
+
+- Run `npm test` once Docker/OrbStack + `mbb-local-pg` are up, and actually
+  scan the QR code with a real authenticator app once in a live browser -
+  the route-level test proves the *math and wiring* are correct end to end,
+  but never renders the actual `<img>` or scans it with a phone.
+- `npm audit`'s 5 pre-existing vitest/vite vulnerabilities are unrelated to
+  this work but are sitting there regardless - your call on whether/when to
+  address them (would need `npm audit fix --force`, a breaking
+  devDependency bump, not attempted here).

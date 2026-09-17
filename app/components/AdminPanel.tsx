@@ -6,6 +6,7 @@ import StatusBadge, { STATUSES } from './StatusBadge'
 import LanguageSwitcher from './LanguageSwitcher'
 import FileUploader from './FileUploader'
 import TypingIndicator from './TypingIndicator'
+import TotpSettings from './TotpSettings'
 import { useTranslation } from '@/lib/useTranslation'
 import { resolveUploadUrl } from '@/lib/resolveUploadUrl'
 import { useIsMobile } from '@/lib/useMediaQuery'
@@ -38,7 +39,7 @@ export default function AdminPanel() {
   // Bonus: ?chat=<customerId> in the URL (e.g. from an email link) opens
   // straight into the Beskeder tab, derived once up front so there's no
   // flash of the Overblik tab before switching.
-  const [view, setView] = useState<'overview' | 'manage' | 'messages' | 'calendar'>(() => (chatParam ? 'messages' : 'overview'))
+  const [view, setView] = useState<'overview' | 'manage' | 'messages' | 'calendar' | 'security'>(() => (chatParam ? 'messages' : 'overview'))
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [messages, setMessages] = useState<any[]>([])
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
@@ -341,6 +342,7 @@ export default function AdminPanel() {
             {totalUnread > 0 && <span style={{ position: 'absolute', top: '8px', right: '-20px', backgroundColor: '#ff6666', color: '#fff', fontSize: '9px', fontWeight: 'bold', minWidth: '17px', height: '17px', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>{totalUnread > 9 ? '9+' : totalUnread}</span>}
           </button>
           <button onClick={() => setView('calendar')} style={{ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: view === 'calendar' ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: view === 'calendar' ? '900' : 'normal', letterSpacing: '1px', textTransform: 'uppercase', borderBottom: view === 'calendar' ? '2px solid #fff' : '2px solid transparent' }}>{t('admin.tabCalendar', 'Kalender')}</button>
+          <button onClick={() => setView('security')} style={{ padding: '15px 0', marginRight: '40px', backgroundColor: 'transparent', border: 'none', color: view === 'security' ? '#fff' : '#666', cursor: 'pointer', fontSize: '13px', fontWeight: view === 'security' ? '900' : 'normal', letterSpacing: '1px', textTransform: 'uppercase', borderBottom: view === 'security' ? '2px solid #fff' : '2px solid transparent' }}>{t('admin.tabSecurity', 'Sikkerhed')}</button>
         </div>
 
         {view === 'overview' && (
@@ -764,6 +766,8 @@ export default function AdminPanel() {
             )}
           </div>
         )}
+
+        {view === 'security' && <TotpSettings />}
       </div>
 
       {showMeetingForm && (

@@ -14,12 +14,14 @@
     "@vercel/postgres": "^0.10.0",
     "next": "16.3.4",
     "postgres": "^3.4.9",
+    "qrcode": "^1.5.4",
     "react": "^19.0.0-rc-66855b96-20241106",
     "react-dom": "^19.0.0-rc-66855b96-20241106",
     "three": "^0.186.0"
   },
   "devDependencies": {
     "@types/node": "^20.16.5",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.186.0",

@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from '@/lib/useTranslation'
 
 const BAR_HEIGHT = 56
@@ -19,12 +19,22 @@ function readIsAdmin(): boolean {
 // nothing for real customers - readIsAdmin() only returns true in a
 // browser that actually logged in through the admin PIN.
 export default function AdminNav({ trail }: { trail: (string | null | undefined)[] }) {
-  // Lazy-init rather than an effect: this page's content is always gated
-  // behind a loading screen on first render (see CustomerDashboard/
-  // ProjectDetail), so the server-rendered HTML never reaches this far -
-  // there's no hydration mismatch to guard against here.
-  const [isAdmin] = useState(readIsAdmin)
+  // Some callers (e.g. JarvisHud) render this before any loading gate, so
+  // the server always renders with no knowledge of localStorage and would
+  // produce `null` here. Reading localStorage directly in the initial
+  // render (or its useState initializer) makes the very first client
+  // render disagree with that server output whenever isAdmin is actually
+  // true - a real, visible hydration mismatch, not just a theoretical one.
+  // Starting at `false` on both server and client, then flipping to the
+  // real value in an effect after mount, keeps the first render identical
+  // on both sides; the bar simply appears a frame later on the client.
+  const [isAdmin, setIsAdmin] = useState(false)
   const [hovering, setHovering] = useState(false)
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsAdmin(readIsAdmin())
+  }, [])
   const { t } = useTranslation()
 
   if (!isAdmin) return null
