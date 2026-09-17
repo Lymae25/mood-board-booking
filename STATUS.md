@@ -306,3 +306,232 @@ DATABASE_URL=postgres://postgres:localdevpass@localhost:5432/mbb_dev npm run dev
 With no `JARVIS_API_URL`/`JARVIS_TRENDS_URL` set, `/admin/jarvis` is fully
 usable in demo mode - chat replies, demo trend cards, and save-to-customer
 all work against the local database with zero real credentials.
+
+---
+
+# Jarvis HUD redesign (same branch, `jarvis-control-v2`)
+
+A full visual/interaction rebuild of `/admin/jarvis` into a holographic
+cyber-HUD (hexagon core, concentric rings, circular menu, a gold three.js
+hologram for content). **100% original** - no Marvel/Iron Man/Stark
+Industries names, logos, or arc-reactor shapes anywhere; everything is
+drawn in SVG, CSS and three.js. **Local only** - not merged, not deployed,
+no Railway changes.
+
+## What's done and tested
+
+**Structure** - `app/components/JarvisHud.tsx` is now a thin orchestrator
+over `app/components/jarvis-hud/`: `HexCore.tsx` (SVG core + 6 rings),
+`CircularMenu.tsx` (8-way mode/hologram menu), `Panel.tsx`/`Panels.tsx`
+(the cut-corner status/clock/weather/activity/log panels), `BottomBar.tsx`
+(chat input + mic), `GoldHologram.tsx` (three.js wireframe globe) +
+`GoldHologramContent.tsx` (the HTML panels floating over it),
+`SaveModal.tsx`, `hooks.ts` (mic volume, voice audio analysis, reduced
+motion), and `theme.ts` (the two color tracks). All admin auth stays
+exactly as Del C left it - `requireAdminSession()` gates every route,
+`AdminNav`/`proxy.ts` gate the page, nothing here touches that.
+
+1. **Two color tracks** - cyan/ice (`#00d9ff`/`#4fc3f7`/`#0a84ff`) for
+   Jarvis itself, gold/amber (`#ffd54f`/`#ffb300`/`#ff8f00`) for anything
+   Jarvis shows (trends, customers, calendar). Near-black navy background
+   (`#02060d`) with a drifting grid and a scanline sweep. JetBrains Mono
+   via `next/font/google` (self-hosted at build time, no runtime Google
+   Fonts request). Cut-corner panels with corner brackets throughout.
+2. **Hexagon core** - outer/inner hexagon wireframe, center dot, 6
+   concentric rings (dashed circle, dense tick ring, segmented arcs +
+   ticks, hex-code ring, sparse arcs, thin dashed outer ring), each
+   rotating at its own speed/direction. Respects `prefers-reduced-motion`
+   (all animation classes are gated behind `:not(.jh-core-reduced)`, and
+   the gold hologram's rotation/materialize skip straight to their end
+   state when reduced motion is on).
+3. **Four core states**: IDLE (slow breathing pulse), LISTENING (blue
+   pulse driven by real mic RMS via `getUserMedia` + `AnalyserNode`,
+   mic only ever starts on an explicit click, with a visible green
+   button state while active), THINKING (a rotating scanner sweep),
+   SPEAKING (see below). `hudState` is *derived*, not stored
+   (`mic.listening ? 'listening' : sending ? 'thinking' : voice.speaking
+   ? 'speaking' : 'idle'`) - no manual state juggling, no races.
+4. **Speaking, audio-reactive**: real mode decodes ElevenLabs' base64 mp3
+   through `AudioContext.decodeAudioData` into an `AnalyserNode`, splits
+   the frequency spectrum into low/mid/high thirds every animation frame,
+   and feeds that into the core (low band scales the outer hexagon, mid
+   band the inner wireframe, high band drives sparkle-particle opacity).
+   `lib/jarvisClient.ts`'s `synthesizeSpeech()` now calls ElevenLabs'
+   **with-timestamps** endpoint first (character-level alignment data,
+   for future syllable-precise pulsing), falling back to the plain TTS
+   endpoint if that ever fails, so speech never breaks outright. Demo mode
+   (no `ELEVENLABS_API_KEY`/`ELEVENLABS_VOICE_ID`) has no analysable audio
+   graph for the browser's own `speechSynthesis`, so it pulses on
+   `onboundary` (word-boundary) events instead, exactly as the brief
+   describes. `/api/jarvis/speak` now always returns JSON
+   (`{audioBase64, alignment, demo}`) instead of raw audio bytes, so the
+   client can decode+analyse either way.
+5. **Circular menu** - CVS/PRIVAT/NETS/TRENDS/KUNDER/KALENDER/CHAT/SYSTEM
+   around the core. CVS/PRIVAT/NETS send `/cvs`, `/privat`, `/nets` to
+   Jarvis exactly as before; NETS is visibly red with a warning tooltip
+   ("ingen kunde- eller persondata"). TRENDS/KUNDER/KALENDER/SYSTEM open
+   the gold hologram to that tab (toggle - click again to close); CHAT
+   closes the hologram and focuses the text input.
+6. **Panels**: top-left "JARVIS OS" (version, user "Lymae", hex-framed
+   avatar); left "System status" (Jarvis/portal online dots, response-time
+   sparkline, customer/project/trends-this-week counts); left-bottom
+   "Seneste handlinger" (a live-updating terminal list from the existing
+   `/api/jarvis/log`, Del D.2); right "København" (live clock+date, and
+   real weather - see below); right-bottom "I dag" (today's meetings from
+   `/api/meetings`, unread customer message count from `/api/messages`);
+   bottom bar (chat input + mic + "CHROME VAULT STUDIOS").
+7. **Weather** - new `lib/jarvisWeather.ts` + admin-gated
+   `GET /api/jarvis/weather`, calling Open-Meteo (no API key) for
+   Copenhagen: temperature, feels-like, wind, humidity, sunrise/sunset,
+   tomorrow's forecast. Kept behind an admin route rather than fetched
+   directly from the browser, matching "all data via existing routes with
+   an admin session" - falls back to a fixed, clearly-marked reserve value
+   if Open-Meteo is unreachable (network-down safety, not a demo-mode
+   concept - Open-Meteo needs no key at all).
+8. **Status ping** - new `checkJarvisStatus()` in `lib/jarvisClient.ts` +
+   admin-gated `GET /api/jarvis/status`, pinging Jarvis's own documented
+   `/health` path (see `~/jarvis` README, Fase 2) rather than running a
+   real, expensive chat turn. Demo mode (no `JARVIS_API_URL`) returns a
+   realistic-looking synthetic response-time history for the sparkline,
+   not a flat line.
+9. **Gold hologram** - `three.js` (added as a real dependency, imported
+   directly, not a `<script>` tag - `@types/three` pinned to the exact
+   matching version since three.js ships no bundled types). A wireframe
+   sphere (a plain `SphereGeometry` wireframed already reads as
+   latitude/longitude lines), a sparser outer sphere for depth, a glowing
+   core, ~90-220 additive-blended sparkle particles (fewer on mobile),
+   slow auto-rotation, and manual drag-to-rotate via pointer events (no
+   `OrbitControls` import needed for something this simple). Opens/closes
+   with a materialize/dematerialize scale+opacity tween. A dark backdrop
+   (`rgba(2,6,13,0.8)`) fades in behind it so the gold content reads
+   clearly over the cyan HUD underneath. The trend/customer/calendar/
+   system content itself renders as HTML panels on top (not part of the
+   3D scene) - `GoldHologramContent.tsx`.
+10. **"Hvilken video vil du se først?"** - shown above the trend cards in
+    the hologram when trends are loaded, matching the brief.
+11. **Tests**: `tests/jarvisControl.test.ts` extended with the two new
+    routes - `GET /api/jarvis/weather` and `GET /api/jarvis/status` both
+    require admin (`401` without a session), `status` returns realistic
+    demo data with a sparkline history, `weather` returns a well-shaped
+    payload whether Open-Meteo answered or the fallback kicked in. The
+    existing admin-gating/customers-never-see-drafts/save-to-customer/
+    approve-reject tests from Del C all still pass unchanged (the speak
+    route's new JSON-always contract didn't break its existing demo-mode
+    test). **60/60 tests passing.**
+12. **Build**: succeeds, all new routes listed in the route manifest.
+13. **Lint**: compared file-by-file against `main`'s own baseline (152
+    problems: 92 errors, 60 warnings), not just the total. This work adds
+    **zero new errors** and exactly 4 new warnings, all matching
+    pre-existing, untouched patterns elsewhere in the codebase: one
+    `@next/next/no-img-element` in `GoldHologramContent.tsx` (already
+    exists untouched on 4+ other components), one
+    `react-hooks/exhaustive-deps` on the fetch-on-mount effect in
+    `JarvisHud.tsx` (already exists untouched on `ProjectDetail.tsx`'s
+    identical pattern), and the 2 `no-unused-vars` in `lib/db-postgres.ts`
+    that were already documented from Del C. Two of React's newer, very
+    strict "purity"/"set-state-in-effect" rules fired on legitimate
+    patterns (a live clock's initial tick, `matchMedia`'s initial read, a
+    "filter a fetched list against now" computation) - suppressed with
+    targeted `eslint-disable-next-line` comments, the same pattern the
+    pre-existing `JarvisHud.tsx` already used for its own fetch-on-mount
+    effect before this rewrite.
+14. **Screenshots** (`docs/jarvis-hud-*.png`, all 6 requested) captured
+    with a real Playwright browser against a real running `next dev` +
+    local Postgres, logged in as a real (freshly-generated, local-only
+    test) admin: `hvile` (idle), `lytter` (mic clicked, real
+    `getUserMedia` with Chromium's fake-device flag), `taenker`
+    (thinking, chat route artificially delayed to give a real window to
+    capture it), `taler` (speaking, demo-mode word-boundary pulsing),
+    `hologram-trends` (the gold globe + trend cards), `mobil` (420px
+    viewport, panels stacked below the core as specified). The capture
+    script is committed at `scripts/capture-hud-screenshots.mjs` so these
+    can be regenerated later.
+
+## What failed and why (found and fixed during this work)
+
+- **Circular menu buttons off-screen/overlapping.** The initial radius
+  math (`radius * cos(angle) / 4`, with `radius` passed as a *pixel*
+  value) put the top item (CVS) at -20% of the container's height -
+  hidden behind the fixed admin nav bar - and the bottom item (KUNDER) at
+  +120%, overlapping the page content below. Fixed by switching to a
+  plain percentage radius (`radiusPercent`, ~37) computed directly against
+  the container's own 0-100% box, verified by screenshot before/after.
+- **Mobile layout overflowed the viewport.** Root cause, found by
+  inspecting computed styles/bounding boxes directly rather than guessing:
+  `.jh-layout`'s `align-items: flex-start` (chosen for row-mode's
+  "top-align panels of different heights") only affects the *cross axis* -
+  which becomes **width** once the mobile media query flips
+  `flex-direction` to `column`. With `flex-start`, children never stretch
+  to fill that width and instead take their own max-content size; `HexCore`
+  additionally had a **hardcoded 560px `size` prop** ignoring its
+  container entirely, compounding the overflow. Fixed both: `align-items:
+  stretch` inside the mobile media query, and `HexCore` now always fills
+  its parent (`width: 100%; height: 100%`, no size prop) - the SVG's own
+  `viewBox` handles scaling.
+- **Demo TikTok embeds showed TikTok's real cookie-consent chrome for a
+  fake video ID.** The demo trend data's TikTok URL isn't a real video, so
+  handing it to the real `tiktok-embed.js` (loaded for the live-data case)
+  produced TikTok's actual embed UI trying and failing to load it. Fixed:
+  demo trends now render a clearly-labelled placeholder card instead of a
+  real embed attempt.
+- **An early Playwright test run audibly played synthesized speech through
+  the machine's speakers.** Chromium's `speechSynthesis` apparently routes
+  to the real OS TTS engine even when launched normally, and my first
+  screenshot/video script used the demo "speaking" flow (real
+  `window.speechSynthesis.speak()`) without muting anything. **Fixed
+  immediately upon being told**: the committed
+  `scripts/capture-hud-screenshots.mjs` launches Chromium with
+  `--mute-audio` *and* fully stubs `window.speechSynthesis` before any
+  page loads (synthetic `onboundary`/`onend` events, no real TTS call at
+  all) - belt and suspenders. The local dev server and every test browser
+  were closed as soon as each test step finished, per your instruction.
+  **The optional screen recording (`docs/jarvis-hud-taler.mp4`/`.gif`)
+  was skipped entirely** rather than risk this again - the six PNG
+  screenshots (including `jarvis-hud-taler.png`, captured with the
+  stubbed, silent speech path) cover the same "speaking" state visually.
+  If you want the video, it can be recorded safely now with the fixed
+  script (`recordVideo` on the context, same audio stubs already in
+  place) - just say so.
+- **A pre-existing hydration warning** ("server rendered HTML didn't
+  match the client", around `AdminNav`'s `<style>` tag) appears on every
+  screenshot as a small dev-mode-only "1 Issue" badge. Confirmed via `git
+  diff main -- app/components/AdminNav.tsx` (no output - completely
+  unchanged) that this is **pre-existing, not introduced by this work**,
+  and it comes from `AdminNav`'s own `useState(readIsAdmin)` lazy
+  localStorage read (a well-known SSR/CSR mismatch pattern) - it affects
+  every page that uses `AdminNav` (also `ProjectDetail.tsx`), not just
+  this one. React just regenerates the tree client-side; nothing breaks
+  functionally, and it's invisible in a production build. Left alone as
+  out of scope for a HUD redesign task - flagging here rather than
+  silently leaving it unmentioned.
+
+## What you need to decide/do
+
+- Nothing deploys or merges on its own, same as Del C/D.
+- The gold hologram's content (trends/customers/calendar/system) all pull
+  from the same admin-gated routes as before - no new data-access
+  decisions needed here beyond what Del C already established.
+- If you want the optional `.mp4`/`.gif` speaking demo after all, it's
+  safe to record now (see above) - just ask and it'll use the same muted,
+  stubbed script.
+- Consider (separately, out of scope here) whether the pre-existing
+  `AdminNav` hydration warning is worth a real fix at some point - it's
+  cosmetic-only today.
+
+## How to see it locally
+
+```sh
+# 1-4: same local Postgres + admin password setup as the rest of this file
+DATABASE_URL=postgres://postgres:localdevpass@localhost:5432/mbb_dev npm test
+DATABASE_URL=postgres://postgres:localdevpass@localhost:5432/mbb_dev npm run build
+npm run lint
+DATABASE_URL=postgres://postgres:localdevpass@localhost:5432/mbb_dev npm run dev
+# then, logged in as admin in the browser: open /admin/jarvis
+
+# To regenerate the docs/ screenshots yourself (dev server must be running):
+LOCAL_ADMIN_PASSWORD=<your local test password> node scripts/capture-hud-screenshots.mjs
+```
+
+No `JARVIS_API_URL`/`JARVIS_API_KEY`/`ELEVENLABS_API_KEY`/
+`ELEVENLABS_VOICE_ID` needed - the whole HUD, including chat, trends, and
+the gold hologram, works fully in demo mode with realistic test data.

@@ -11,13 +11,11 @@ export async function POST(request: NextRequest) {
     if (typeof text !== 'string' || !text.trim()) {
       return NextResponse.json({ error: 'text required' }, { status: 400 })
     }
-    const { audio, demo } = await synthesizeSpeech(text)
-    if (demo || !audio) {
-      // No ElevenLabs credentials configured - tell the client to fall back
-      // to the browser's own speechSynthesis instead of playing an <audio>.
-      return NextResponse.json({ demo: true })
-    }
-    return new NextResponse(audio, { headers: { 'Content-Type': 'audio/mpeg' } })
+    const result = await synthesizeSpeech(text)
+    // Always JSON now (not raw audio bytes): the HUD needs the alignment
+    // data alongside the audio to drive syllable-precise core pulses, and
+    // decodes audioBase64 client-side via the Web Audio API either way.
+    return NextResponse.json(result)
   } catch (error) {
     console.error('POST /api/jarvis/speak error:', error)
     return NextResponse.json({ error: 'Failed to synthesize speech' }, { status: 502 })

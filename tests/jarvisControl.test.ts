@@ -6,6 +6,8 @@ import * as chatRoute from '@/app/api/jarvis/chat/route'
 import * as speakRoute from '@/app/api/jarvis/speak/route'
 import * as trendsRoute from '@/app/api/jarvis/trends/route'
 import * as logRoute from '@/app/api/jarvis/log/route'
+import * as weatherRoute from '@/app/api/jarvis/weather/route'
+import * as statusRoute from '@/app/api/jarvis/status/route'
 import * as draftsRoute from '@/app/api/mood-board-drafts/route'
 import * as draftByIdRoute from '@/app/api/mood-board-drafts/[id]/route'
 import { NextRequest } from 'next/server'
@@ -49,6 +51,16 @@ d('every Jarvis route requires an admin session', () => {
 
   it('GET /api/jarvis/log requires admin', async () => {
     const res = await logRoute.GET(req('http://localhost/api/jarvis/log'))
+    expect(res.status).toBe(401)
+  })
+
+  it('GET /api/jarvis/weather requires admin', async () => {
+    const res = await weatherRoute.GET(req('http://localhost/api/jarvis/weather'))
+    expect(res.status).toBe(401)
+  })
+
+  it('GET /api/jarvis/status requires admin', async () => {
+    const res = await statusRoute.GET(req('http://localhost/api/jarvis/status'))
     expect(res.status).toBe(401)
   })
 
@@ -97,6 +109,34 @@ d('a valid admin session can reach every Jarvis route (demo mode, no real Jarvis
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.demo).toBe(true)
+    expect(data.audioBase64).toBeNull()
+    expect(data.alignment).toBeNull()
+  })
+
+  it('GET /api/jarvis/status returns demo status with a response-time history for the sparkline', async () => {
+    const res = await statusRoute.GET(req('http://localhost/api/jarvis/status', { cookie: `${ADMIN_SESSION_COOKIE}=${token}` }))
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.demo).toBe(true)
+    expect(data.jarvisOnline).toBe(false)
+    expect(data.portalOnline).toBe(true)
+    expect(Array.isArray(data.history)).toBe(true)
+    expect(data.history.length).toBeGreaterThan(0)
+  })
+
+  it('GET /api/jarvis/weather returns a well-shaped payload (live Open-Meteo or the documented fallback)', async () => {
+    const res = await weatherRoute.GET(req('http://localhost/api/jarvis/weather', { cookie: `${ADMIN_SESSION_COOKIE}=${token}` }))
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(typeof data.temperature).toBe('number')
+    expect(typeof data.feelsLike).toBe('number')
+    expect(typeof data.windSpeed).toBe('number')
+    expect(typeof data.humidity).toBe('number')
+    expect(typeof data.sunrise).toBe('string')
+    expect(typeof data.sunset).toBe('string')
+    expect(typeof data.tomorrow.max).toBe('number')
+    expect(typeof data.tomorrow.min).toBe('number')
+    expect(typeof data.demo).toBe('boolean')
   })
 
   it('GET /api/jarvis/trends returns demo trends matching the real schema', async () => {
