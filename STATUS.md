@@ -786,3 +786,56 @@ Same session, same environment caveat as Del A above (no Docker/OrbStack -
   this work but are sitting there regardless - your call on whether/when to
   address them (would need `npm audit fix --force`, a breaking
   devDependency bump, not attempted here).
+
+---
+
+# 2026-09-17: Del C and Del D
+
+## Del C: secure /api/typing
+
+Done on its own branch, **not this one** - see `security-typing` (pushed,
+not merged), branched from `main` per the task's own instructions. Full
+detail is in that branch's own `STATUS.md` entry, not duplicated here to
+avoid two reports drifting apart. Summary: both `GET` and `POST
+/api/typing` now require an admin or owning-customer session, same pattern
+as `/api/messages`; new access-control tests added; no Docker/OrbStack
+locally this session so the new DB-backed tests weren't run for real
+(confirmed they skip cleanly).
+
+## Del D: GO-LIVE.md
+
+New file at the repo root, `GO-LIVE.md`, in Danish - a guide, not an
+action. Nothing was deployed, merged to `main`, or changed in Railway
+while writing it.
+
+Structure: two independent tracks. **Spor 1** is the three
+`mood-board-booking` branches (`security-typing` → `calendar-button` →
+`jarvis-control-v2`, in that order, reasoning given for the order) - all
+three work fully in demo mode with zero new environment variables, so this
+track can go live today, independent of anything else. **Spor 2** is the
+`~/jarvis` infrastructure work, sequenced exactly as that repo's own
+`MIGRATION-PLAN.md` concludes - account transfer first, then the region
+move to `ams`, then merging/deploying `trends-endpoint`, then choosing
+between the two documented connection options (public HTTPS + bearer
+token, or consolidating both Railway projects for private networking) and
+setting `JARVIS_API_URL`/`JARVIS_API_KEY`/`JARVIS_TRENDS_URL`/
+`JARVIS_TRENDS_API_KEY` on the portal side. Per your instruction, this
+explicitly puts account transfer and the Amsterdam region move before any
+of the trends-endpoint/connection work, matching
+`~/jarvis/MIGRATION-PLAN.md`'s own "samlet rækkefølge" section.
+
+Each step lists: what it does, environment variable **names** only (never
+values), what you personally do in a browser (Railway UI clicks, accepting
+a transfer invite, scanning a 2FA QR code - things I can't or shouldn't do
+for you), what to test immediately after, and how to roll it back. Closes
+with a one-page numbered summary of the whole sequence and a note that
+steps 1-3 (the portal branches) can happen today while steps 4-7 (the
+Jarvis infrastructure) wait indefinitely with no downside - the portal
+stays fully functional in demo mode until you're ready for those.
+
+**Not verified against real Railway/Postgres state this session** - it's
+built entirely from reading `~/jarvis/MIGRATION-PLAN.md`,
+`~/jarvis/STATUS.md`, `~/jarvis/README.md`'s "Fase 5B" section (read
+directly off the `trends-endpoint` branch, since that section doesn't
+exist on `~/jarvis`'s `main`), and this branch's own `STATUS.md` entries
+above - not by actually running any of the Railway steps.
