@@ -7,16 +7,15 @@ import GoldHologram from './jarvis-hud/GoldHologram'
 import GoldHologramContent, { Trend, TrendVideo, CustomerWithProjects, CalendarMeeting } from './jarvis-hud/GoldHologramContent'
 import SaveModal from './jarvis-hud/SaveModal'
 import BottomBar from './jarvis-hud/BottomBar'
-import { TopLeftPanel, StatusPanel, ClockWeatherPanel, ActivityPanel, LogPanel, StatusData, WeatherData, MeetingItem, LogItem } from './jarvis-hud/Panels'
+import { TopLeftPanel, StatusPanel, ClockWeatherPanel, ActivityPanel, LogPanel, NetworkPanel, UptimePanel, NextRunPanel, PlatformBarsPanel, DataStripPanel, StatusData, WeatherData, MeetingItem, LogItem } from './jarvis-hud/Panels'
 import { useJarvisVoice, useMicVolume, useReducedMotion } from './jarvis-hud/hooks'
-import { HudState } from './jarvis-hud/theme'
+import { HudState, STATE_LABEL_DA, STATE_COLOR } from './jarvis-hud/theme'
 import { useTranslation } from '@/lib/useTranslation'
 
 interface ChatLine { role: 'user' | 'jarvis'; text: string }
 interface Customer { id: string; name: string }
 interface Project { id: string; name: string; customerId?: string; status?: string }
 interface Meeting { id: string; title: string; meetingDate: string; meetingTime: string }
-interface Message { customerId: string; sender: string; readByAdmin: boolean }
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10)
@@ -41,10 +40,19 @@ export default function JarvisHud({ fontClassName }: { fontClassName?: string })
   const [customers, setCustomers] = useState<Customer[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [meetings, setMeetings] = useState<Meeting[]>([])
-  const [unreadMessages, setUnreadMessages] = useState(0)
   const [logEntries, setLogEntries] = useState<LogItem[]>([])
   const [weather, setWeather] = useState<WeatherData | null>(null)
-  const [jarvisStatus, setJarvisStatus] = useState<{ jarvisOnline: boolean; jarvisResponseTimeMs: number | null; demo: boolean; history: number[] } | null>(null)
+  const [jarvisStatus, setJarvisStatus] = useState<{
+    jarvisOnline: boolean
+    jarvisResponseTimeMs: number | null
+    demo: boolean
+    history: number[]
+    customerCount: number
+    projectCount: number
+    unreadMessages: number
+    uptimeSeconds: number
+    networkHistory: number[]
+  } | null>(null)
 
   const [saveTarget, setSaveTarget] = useState<{ trend: Trend; video: TrendVideo } | null>(null)
   const [saveCustomerId, setSaveCustomerId] = useState('')
@@ -67,28 +75,33 @@ export default function JarvisHud({ fontClassName }: { fontClassName?: string })
     }
   }
 
+  // Every fetch below used to swallow its own errors silently
+  // (`.catch(() => {})`), which is exactly why the customer/project counts
+  // could go quietly stale while other panels kept working - a failed
+  // request just looked like "zero of these exist" with nothing in the
+  // console to say otherwise. Logging the error doesn't fix a bad response
+  // by itself, but it stops that specific failure mode from being invisible
+  // again. The headline counts themselves (customers, projects, unread
+  // messages, uptime, network activity) now all come from the single
+  // /api/jarvis/status call below - see that route's comment.
   async function loadEverything() {
     loadTrends()
-    fetch('/api/customers').then(r => r.json()).then((d) => setCustomers(Array.isArray(d) ? d : [])).catch(() => {})
-    fetch('/api/projects').then(r => r.json()).then((d) => setProjects(Array.isArray(d) ? d : [])).catch(() => {})
-    fetch('/api/meetings').then(r => r.json()).then((d) => setMeetings(Array.isArray(d) ? d : [])).catch(() => {})
-    fetch('/api/messages').then(r => r.json()).then((d) => {
-      const list: Message[] = Array.isArray(d) ? d : []
-      setUnreadMessages(list.filter(m => m.sender === 'customer' && !m.readByAdmin).length)
-    }).catch(() => {})
-    fetch('/api/jarvis/log').then(r => r.json()).then((d) => setLogEntries(Array.isArray(d) ? d : [])).catch(() => {})
-    fetch('/api/jarvis/weather').then(r => r.json()).then(setWeather).catch(() => {})
-    fetch('/api/jarvis/status').then(r => r.json()).then(setJarvisStatus).catch(() => {})
+    fetch('/api/customers').then(r => r.json()).then((d) => setCustomers(Array.isArray(d) ? d : [])).catch((err) => console.error('JarvisHud: /api/customers failed', err))
+    fetch('/api/projects').then(r => r.json()).then((d) => setProjects(Array.isArray(d) ? d : [])).catch((err) => console.error('JarvisHud: /api/projects failed', err))
+    fetch('/api/meetings').then(r => r.json()).then((d) => setMeetings(Array.isArray(d) ? d : [])).catch((err) => console.error('JarvisHud: /api/meetings failed', err))
+    fetch('/api/jarvis/log').then(r => r.json()).then((d) => setLogEntries(Array.isArray(d) ? d : [])).catch((err) => console.error('JarvisHud: /api/jarvis/log failed', err))
+    fetch('/api/jarvis/weather').then(r => r.json()).then(setWeather).catch((err) => console.error('JarvisHud: /api/jarvis/weather failed', err))
+    fetch('/api/jarvis/status').then(r => r.json()).then(setJarvisStatus).catch((err) => console.error('JarvisHud: /api/jarvis/status failed', err))
   }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadEverything()
     const statusInterval = setInterval(() => {
-      fetch('/api/jarvis/status').then(r => r.json()).then(setJarvisStatus).catch(() => {})
+      fetch('/api/jarvis/status').then(r => r.json()).then(setJarvisStatus).catch((err) => console.error('JarvisHud: /api/jarvis/status failed', err))
     }, 20_000)
     const logInterval = setInterval(() => {
-      fetch('/api/jarvis/log').then(r => r.json()).then((d) => setLogEntries(Array.isArray(d) ? d : [])).catch(() => {})
+      fetch('/api/jarvis/log').then(r => r.json()).then((d) => setLogEntries(Array.isArray(d) ? d : [])).catch((err) => console.error('JarvisHud: /api/jarvis/log failed', err))
     }, 20_000)
     return () => { clearInterval(statusInterval); clearInterval(logInterval) }
   }, [])
@@ -249,9 +262,12 @@ export default function JarvisHud({ fontClassName }: { fontClassName?: string })
     jarvisResponseTimeMs: jarvisStatus.jarvisResponseTimeMs,
     history: jarvisStatus.history,
     demo: jarvisStatus.demo,
-    customerCount: customers.length,
-    projectCount: projects.length,
-    trendsCount: trends.length
+    customerCount: jarvisStatus.customerCount,
+    projectCount: jarvisStatus.projectCount,
+    trendsCount: trends.length,
+    unreadMessages: jarvisStatus.unreadMessages,
+    uptimeSeconds: jarvisStatus.uptimeSeconds,
+    networkHistory: jarvisStatus.networkHistory
   } : null
 
   return (
@@ -291,6 +307,7 @@ export default function JarvisHud({ fontClassName }: { fontClassName?: string })
           .jh-side-col { width: 100% !important; min-width: 0 !important; }
           .jh-core-wrap { min-width: 0; order: -1; }
         }
+        .jh-connector-lines { position: absolute; inset: 0; pointer-events: none; z-index: -1; }
       `}</style>
 
       <div className={`jh-bg-grid`} />
@@ -298,36 +315,52 @@ export default function JarvisHud({ fontClassName }: { fontClassName?: string })
 
       <AdminNav trail={['Jarvis']} />
 
-      <div style={{ position: 'relative', zIndex: 1, padding: '20px 24px 40px', maxWidth: 1600, margin: '0 auto' }}>
-        <div className="jh-layout" style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+      <div style={{ position: 'relative', zIndex: 1, padding: '20px 20px 40px', maxWidth: 1920, margin: '0 auto' }}>
+        <div className="jh-layout" style={{ position: 'relative', display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+          {/* Thin decorative lines running from the core out toward each
+              panel column - purely cosmetic wiring, not literally anchored
+              to panel positions (those reflow with content height). */}
+          <svg className="jh-connector-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <line x1="17" y1="35" x2="40" y2="46" stroke="#4fc3f7" strokeWidth="0.15" opacity="0.35" />
+            <line x1="17" y1="55" x2="40" y2="50" stroke="#4fc3f7" strokeWidth="0.15" opacity="0.35" />
+            <line x1="83" y1="35" x2="60" y2="46" stroke="#4fc3f7" strokeWidth="0.15" opacity="0.35" />
+            <line x1="83" y1="55" x2="60" y2="50" stroke="#4fc3f7" strokeWidth="0.15" opacity="0.35" />
+          </svg>
+
           <div className="jh-side-col" style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 20, flexShrink: 0 }}>
             <TopLeftPanel userName="Lymae" />
             <StatusPanel status={combinedStatus} />
             <LogPanel entries={logEntries} />
           </div>
 
-          <div className="jh-core-wrap" style={{ flex: 1, position: 'relative', minHeight: 640, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div className="jh-core-wrap" style={{ flex: 1, position: 'relative', minHeight: 780, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             {demoMode && (
               <p style={{ fontSize: 10, color: '#f59e0b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
                 Demo-tilstand: JARVIS_API_URL/JARVIS_API_KEY ikke sat
               </p>
             )}
-            <div style={{ position: 'relative', width: '100%', maxWidth: 560, aspectRatio: '1 / 1' }}>
-              <HexCore state={hudState} level={mic.listening ? mic.level : voice.level} bands={voice.bands} reducedMotion={reducedMotion} />
+            {/* ~40% larger than the previous 560px core, with the SVG rings
+                inset from the box edge so the circular menu has a clear,
+                dedicated ring of its own space outside every tick/code ring
+                (see CircularMenu's radiusPercent below). */}
+            <div style={{ position: 'relative', width: '100%', maxWidth: 780, aspectRatio: '1 / 1' }}>
+              <div style={{ position: 'absolute', inset: '11%' }}>
+                <HexCore state={hudState} level={mic.listening ? mic.level : voice.level} bands={voice.bands} reducedMotion={reducedMotion} />
+              </div>
               <CircularMenu
-                radiusPercent={37}
+                radiusPercent={47}
                 activeMode={mode}
                 activeHologramTab={hologramTab}
                 onSelectMode={selectMode}
                 onSelectHologram={selectHologram}
                 onFocusChat={focusChat}
               />
-              <p style={{ position: 'absolute', bottom: -6, left: '50%', transform: 'translateX(-50%)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: '#4fc3f7', opacity: 0.7 }}>
-                {hudState}
+              <p style={{ position: 'absolute', bottom: -34, left: '50%', transform: 'translateX(-50%)', fontSize: 18, fontWeight: 700, letterSpacing: 4, textTransform: 'uppercase', color: STATE_COLOR[hudState], opacity: 0.9, textShadow: `0 0 12px ${STATE_COLOR[hudState]}` }}>
+                {STATE_LABEL_DA[hudState]}
               </p>
             </div>
 
-            <div style={{ width: '100%', marginTop: 30 }}>
+            <div style={{ width: '100%', marginTop: 46 }}>
               <BottomBar
                 ref={inputRef}
                 messages={messages}
@@ -343,23 +376,48 @@ export default function JarvisHud({ fontClassName }: { fontClassName?: string })
 
           <div className="jh-side-col" style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 20, flexShrink: 0 }}>
             <ClockWeatherPanel weather={weather} />
-            <ActivityPanel meetings={todayMeetings} unreadMessages={unreadMessages} />
+            <ActivityPanel meetings={todayMeetings} unreadMessages={combinedStatus?.unreadMessages ?? 0} />
           </div>
+        </div>
+
+        {/* Del A punkt 1 (TÆTHED): a bottom row of small panels so the HUD
+            fills out like a classic sci-fi dashboard instead of stopping at
+            the three main columns above. */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 28 }}>
+          <NetworkPanel history={combinedStatus?.networkHistory ?? []} />
+          <UptimePanel uptimeSeconds={combinedStatus?.uptimeSeconds ?? 0} />
+          <NextRunPanel />
+          <PlatformBarsPanel trends={trends} trendsDemo={trendsDemo} />
+          <DataStripPanel />
         </div>
       </div>
 
-      <div style={{ position: 'fixed', inset: 0, zIndex: hologramTab ? 200 : -1 }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(2,6,13,0.8)', opacity: hologramTab ? 1 : 0, transition: 'opacity 0.4s ease', pointerEvents: 'none' }} />
-        <GoldHologram open={!!hologramTab} reducedMotion={reducedMotion} />
-        <GoldHologramContent
-          tab={hologramTab}
-          trends={trends}
-          trendsDemo={trendsDemo}
-          customers={customersWithProjects}
-          meetings={weekMeetings}
-          status={combinedStatus}
-          onSaveTrend={openSaveModal}
-        />
+      <div className="jh-hologram-layer" style={{ position: 'fixed', inset: 0, zIndex: hologramTab ? 200 : -1 }}>
+        <style>{`
+          .jh-hologram-sphere { position: absolute; top: 0; bottom: 0; left: 0; width: 42%; }
+          .jh-hologram-content { position: absolute; top: 0; bottom: 0; left: 42%; right: 0; }
+          @media (max-width: 900px) {
+            .jh-hologram-sphere { width: 100%; height: 34%; }
+            .jh-hologram-content { left: 0; top: 34%; }
+          }
+        `}</style>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(2,6,13,0.88)', backdropFilter: 'blur(2px)', opacity: hologramTab ? 1 : 0, transition: 'opacity 0.4s ease', pointerEvents: 'none' }} />
+        {/* Sphere on the left, content panels to the right of it - per the
+            HUD brief, "placér indholdskortene til højre for kuglen". */}
+        <div className="jh-hologram-sphere">
+          <GoldHologram open={!!hologramTab} reducedMotion={reducedMotion} />
+        </div>
+        <div className="jh-hologram-content">
+          <GoldHologramContent
+            tab={hologramTab}
+            trends={trends}
+            trendsDemo={trendsDemo}
+            customers={customersWithProjects}
+            meetings={weekMeetings}
+            status={combinedStatus}
+            onSaveTrend={openSaveModal}
+          />
+        </div>
         {hologramTab && (
           <button
             onClick={() => setHologramTab(null)}

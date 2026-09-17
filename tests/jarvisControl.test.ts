@@ -124,6 +124,29 @@ d('a valid admin session can reach every Jarvis route (demo mode, no real Jarvis
     expect(data.history.length).toBeGreaterThan(0)
   })
 
+  // Del A punkt 7: customer/project/unread-message counts used to be
+  // fetched separately on the client and could silently fall back to 0 if
+  // their own request failed, even while other panels kept working. They
+  // now all come from this one admin-gated call, computed directly from the
+  // same DB functions the rest of the admin panel already uses successfully
+  // - so a real customer/project here is reflected here too.
+  it('GET /api/jarvis/status includes real customer/project/unread-message counts and process metrics', async () => {
+    const customer = await createCustomer({ name: 'Status Count Customer', pin: '4321' })
+    await createProject({ customerId: customer.id, name: 'Status Count Project', status: 'active' })
+    try {
+      const res = await statusRoute.GET(req('http://localhost/api/jarvis/status', { cookie: `${ADMIN_SESSION_COOKIE}=${token}` }))
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.customerCount).toBeGreaterThanOrEqual(1)
+      expect(data.projectCount).toBeGreaterThanOrEqual(1)
+      expect(typeof data.unreadMessages).toBe('number')
+      expect(typeof data.uptimeSeconds).toBe('number')
+      expect(Array.isArray(data.networkHistory)).toBe(true)
+    } finally {
+      await deleteCustomer(customer.id)
+    }
+  })
+
   it('GET /api/jarvis/weather returns a well-shaped payload (live Open-Meteo or the documented fallback)', async () => {
     const res = await weatherRoute.GET(req('http://localhost/api/jarvis/weather', { cookie: `${ADMIN_SESSION_COOKIE}=${token}` }))
     expect(res.status).toBe(200)

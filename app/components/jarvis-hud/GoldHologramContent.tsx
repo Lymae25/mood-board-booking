@@ -71,9 +71,9 @@ export default function GoldHologramContent({ tab, trends, trendsDemo, customers
             <p style={{ textAlign: 'center', color: GOLD.mid, fontFamily: "'JetBrains Mono', monospace", fontSize: 12, letterSpacing: 1, marginBottom: 20 }}>
               {trendsDemo ? 'DEMO-DATA — Hvilken video vil du se først?' : 'Hvilken video vil du se først?'}
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+            <div style={{ display: 'flex', overflowX: 'auto', overflowY: 'hidden', gap: 20, paddingBottom: 12, scrollSnapType: 'x mandatory' }}>
               {trends.map((trend, ti) => (
-                <Panel key={ti} title={trend.title} track="gold">
+                <Panel key={ti} title={trend.title} track="gold" style={{ flex: '0 0 320px', scrollSnapAlign: 'start' }}>
                   <p style={{ fontSize: 10, opacity: 0.7, marginBottom: 6 }}>{trend.sound_or_hashtag}</p>
                   <p style={{ fontSize: 12, marginBottom: 6 }}>{trend.why_it_works}</p>
                   <p style={{ fontSize: 11, opacity: 0.8, fontStyle: 'italic', marginBottom: 10 }}>{trend.usage_idea}</p>

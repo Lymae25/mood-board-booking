@@ -535,3 +535,158 @@ LOCAL_ADMIN_PASSWORD=<your local test password> node scripts/capture-hud-screens
 No `JARVIS_API_URL`/`JARVIS_API_KEY`/`ELEVENLABS_API_KEY`/
 `ELEVENLABS_VOICE_ID` needed - the whole HUD, including chat, trends, and
 the gold hologram, works fully in demo mode with realistic test data.
+
+---
+
+# 2026-09-17: Del A - HUD-polish på jarvis-control-v2
+
+Autonomous session (usage limit reset mid-task; picking up from the last
+committed state, `08a6b6b`). Working through Del A → D in order per the
+task instructions, noting blockers here rather than stopping. **Local
+only, still not merged or deployed.**
+
+## Environment note (applies to this whole session)
+
+**Docker/OrbStack was not running** at the start of this session
+(`docker info` failed: `dial unix .../docker.sock: connect: no such file or
+directory`). Per instructions, OrbStack was **not** started. This means:
+- `mbb-local-pg` could not be started, so **no test suite runs, no `next
+  dev` server, and no new screenshots could be produced this session.**
+- All work below was written and verified via `npx tsc --noEmit`, `npm run
+  build`, and `npm run lint` only - all three pass (see below) - but not
+  exercised against a running server or the real test suite.
+- **You need to**: start OrbStack yourself, then `docker start mbb-local-pg`
+  (or `docker run` it fresh per the "How to test locally" section above if
+  it doesn't exist yet), then run `npm test` and re-generate the Del A
+  screenshots (command below) before treating this as fully verified.
+
+## What's done
+
+1. **Numbers fix (punkt 7)**: `GET /api/jarvis/status` (`app/api/jarvis/
+   status/route.ts`) is now the single source for every headline number the
+   HUD shows - customer count, project count, unread messages, uptime, and
+   network activity - computed directly from `getAllCustomers()`/
+   `getProjects()`/`getAllMessages()` in one call, behind the same
+   `requireAdminSession()` that already worked correctly for the messages
+   panel. Previously, `StatusPanel`'s customer/project counts came from two
+   *separate* client-side fetches (`/api/customers`, `/api/projects`) that
+   silently fell back to an empty array on any failure
+   (`.catch(() => {})`), while the unread-message count came from a third,
+   independent fetch that happened to keep working - which is exactly the
+   symptom described (0 vs. 13, from different code paths). Root cause
+   **could not be directly reproduced or confirmed against a real database
+   this session** (no Docker) - the fix removes the failure mode
+   structurally (one source, real errors now logged via
+   `console.error` instead of swallowed) rather than patching a guessed
+   cause. **You need to**: once the DB is up, confirm in the browser
+   console that no `/api/customers` or `/api/projects` errors appear, and
+   that the counts match what `/admin` itself shows for the same data.
+   New test: `tests/jarvisControl.test.ts` - `GET /api/jarvis/status
+   includes real customer/project/unread-message counts and process
+   metrics` (creates a real customer+project, asserts the counts reflect
+   them, cleans up after itself). **Not run this session** (no DB) - added
+   for you to run once Postgres is available.
+2. **Density (punkt 1)**: new bottom row of small panels
+   (`app/components/jarvis-hud/Panels.tsx`): `NetworkPanel` (a real,
+   process-local "admin API calls per minute" line graph -
+   `lib/requestMetrics.ts`, incremented inside `requireAdminSession()` on
+   every successful admin request across the whole app, not just Jarvis
+   routes), `UptimePanel` (real `process.uptime()`, from the same status
+   call), `NextRunPanel` (a live countdown to the next trend-scout run,
+   Monday 08:00 - a fixed schedule fact computed client-side with `Date`,
+   same pattern as the existing clock panel, not "demo data"),
+   `PlatformBarsPanel` (bar chart of trend video counts per platform, from
+   the already-loaded `trends` data, labelled DEMO-DATA when trends are
+   demo), and `DataStripPanel` (a purely decorative hex-code ticker -
+   never claims to represent a real metric, same spirit as `HexCore`'s
+   existing hex-code ring). The whole HUD's max width also grew from 1600px
+   to 1920px to use more of a wide screen.
+3. **Kernen (punkt 2)**: the core's on-screen size grew ~40% (560px → 780px
+   container), with the SVG itself now inset 11% inside that box so there's
+   dedicated empty space between the outermost tick ring and the box edge -
+   see punkt 3. New layers in `HexCore.tsx`: a 7th, outermost segmented ring
+   (`arcs7`, thicker/brighter than the existing ring 6), a faint radial
+   gradient glow sitting behind the whole hexagon assembly, glowing
+   (pulsing) corner points on the outer hexagon's 6 vertices, and thin
+   decorative connector lines from the core out toward each side-panel
+   column (`JarvisHud.tsx`, a low-opacity SVG behind the panels - cosmetic
+   wiring, not literally anchored to exact panel positions since those
+   reflow with content height).
+4. **Menu (punkt 3)**: `CircularMenu` moved from `radiusPercent={37}` (which
+   sat almost on top of the hex-code ring at 36.5%) to `47`, now landing
+   outside every tick/code ring in the newly-inset core - its own clear
+   ring. Buttons got a more solid frame (thicker border, dark-filled
+   background instead of near-transparent) and a real hover state (glow,
+   border brightens, slight scale-up), not just a background tint.
+5. **Tilstande (punkt 4)**: LYTTER now uses a distinct green-cyan
+   (`LISTEN_GREEN = '#12ffb0'`, `theme.ts`) instead of the same bright cyan
+   as SPEAKING, and the rings now visibly contract (start at 0.93× scale)
+   before pulsing outward with live mic level, instead of only ever
+   growing. TÆNKER's rings now spin measurably faster (each ring's
+   animation-duration cut to roughly a third) on top of the existing
+   scanner sweep. TALER gained two expanding "wave" rings rippling outward
+   from the hexagon on a loop while speaking, in addition to the existing
+   glow/scale-with-audio-band behavior. The status text under the core is
+   now Danish (`HVILER`/`LYTTER`/`TÆNKER`/`TALER` -
+   `STATE_LABEL_DA` in `theme.ts`, replacing the raw English state key) and
+   much larger (10px → 18px, bold, colored/glowing to match the state).
+6. **Hologram (punkt 5)**: the gold core (`GoldHologram.tsx`) is dimmed -
+   the previous solid, fully-opaque near-white sphere (`0xfff3d6`) is now a
+   smaller, 85%-opacity warm gold (`0xffc94d`) with a separate larger,
+   low-opacity (18%) halo sphere behind it for the "glow" instead of raw
+   brightness. Layout: the sphere now renders in a left-hand 42%-wide pane
+   and `GoldHologramContent` in the remaining right-hand pane (`≥900px`;
+   stacked sphere-on-top/content-below under 900px), per "placér
+   indholdskortene til højre for kuglen". The backdrop behind the whole
+   hologram is darker (0.8 → 0.88 opacity) with a slight blur. Trend cards
+   in the TRENDS tab are now a horizontal, scroll-snapping carousel
+   (`overflowX: auto`, `scrollSnapType: x mandatory`) instead of a
+   multi-column grid.
+7. **Loggen (punkt 6)**: `LogPanel` now renders plain Danish sentences via a
+   new `translateLogEntry()` helper instead of the raw `action`/`detail`
+   pair - `Chat: <besked>`, `Trend gemt til <kundenavn>`, `Kladde godkendt`,
+   `Kladde afvist`. This required two small server-side changes to what
+   gets logged in the first place: `POST /api/jarvis/chat` now logs just
+   the message text (was `mode=... demo=... message=...`), and `POST
+   /api/mood-board-drafts` now looks up and logs the customer's *name*
+   (was `customerId=... projectId=... title=...`) via the existing
+   `getCustomerById()` - so the log view never needs a separate lookup to
+   show it. Approve/reject still log the draft id server-side (kept for any
+   future audit need) but the UI doesn't display it, matching the brief's
+   examples exactly.
+8. **Screenshots (punkt 8)**: **not done this session** - blocked on no
+   Docker/OrbStack (see above). **You need to**: run
+   `LOCAL_ADMIN_PASSWORD=<your local test password> node
+   scripts/capture-hud-screenshots.mjs` once the dev server and DB are up;
+   it already launches Chromium with `--mute-audio` and stubs
+   `window.speechSynthesis` before the page loads (unchanged from the
+   existing script), and will overwrite the same six `docs/jarvis-hud-*.png`
+   filenames with the new, denser layout.
+9. **Test, build, lint (punkt 9)**:
+   - `npx tsc --noEmit`: clean, no errors.
+   - `npm run build`: succeeds (Next.js 16 + Turbopack), all routes listed
+     in the route manifest, no build-time errors.
+   - `npm run lint`: compared line-by-line against this exact branch's own
+     pre-change baseline (156 problems: 92 errors, 64 warnings, verified by
+     running lint again on the untouched `git stash`-ed tree) - **identical
+     output** except one pre-existing warning's line number shifting by 13
+     lines (from code added above it). Zero new errors, zero new warnings.
+   - `npm test`: **not run** - no local Postgres this session (see
+     Environment note above). One new test was added
+     (`tests/jarvisControl.test.ts`) for the punkt 7 fix; it needs a real
+     run once the DB is available.
+
+## What you need to decide/do
+
+- Start OrbStack, `docker start mbb-local-pg` (or create it fresh), then run
+  `npm test`, confirm the new status-route test passes, and regenerate the
+  `docs/jarvis-hud-*.png` screenshots.
+- Manually eyeball the new density row and the moved circular menu in a
+  real browser at a few widths (this was built and type-checked but never
+  rendered this session) - CSS math can be right on paper and still look
+  off in practice.
+- If the customer/project-count bug still reproduces after this fix (i.e.
+  `/api/jarvis/status`'s own `customerCount`/`projectCount` are wrong, not
+  just the old separate fetches), that would point at the DB layer itself
+  rather than the client - worth a first check with `SELECT count(*) FROM
+  customers` / `projects` directly against the local DB.

@@ -12,7 +12,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'message required' }, { status: 400 })
     }
     const result = await chatWithJarvis(message, mode)
-    await logJarvisAction('chat', `mode=${mode || 'unset'} demo=${result.demo} message=${message.slice(0, 200)}`)
+    // Plain-Danish activity log (Del A, punkt 6): the detail is just the
+    // message itself - the admin log view renders "Chat: <besked>" from it.
+    await logJarvisAction('chat', message.slice(0, 200))
     return NextResponse.json(result)
   } catch (error) {
     console.error('POST /api/jarvis/chat error:', error)

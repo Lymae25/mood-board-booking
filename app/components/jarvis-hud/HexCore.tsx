@@ -65,26 +65,35 @@ function codeTokens(radius: number, count: number) {
   return items
 }
 
+const HEX_VERTICES = hexPoints(150).split(' ').map(p => {
+  const [x, y] = p.split(',').map(Number)
+  return { x, y }
+})
+
 export default function HexCore({ state, level, bands, reducedMotion }: Props) {
   const color = STATE_COLOR[state]
   const innerTicks = useMemo(() => ticks(96, 60, 6), [])
   const outerTicks = useMemo(() => ticks(190, 36, 8), [])
   const arcs3 = useMemo(() => arcSegments(122, 5, 14), [])
   const arcs6 = useMemo(() => arcSegments(196, 8, 10), [])
+  const arcs7 = useMemo(() => arcSegments(198, 4, 18), [])
   const codes = useMemo(() => codeTokens(146, 16), [])
 
   // Speaking scales the whole core with the low band, and the inner
   // wireframe with the mid band - "deep tones drive the outer hexagon,
-  // mid tones the inner lines" per the brief.
-  const outerScale = state === 'speaking' ? 1 + bands.low * 0.14 : state === 'listening' ? 1 + level * 0.08 : 1
-  const innerScale = state === 'speaking' ? 1 + bands.mid * 0.22 : 1
-  const glow = state === 'speaking' ? 18 + level * 40 : state === 'listening' ? 14 + level * 26 : state === 'thinking' ? 22 : 12
+  // mid tones the inner lines" per the brief. Listening pulls the rings in
+  // slightly and pulses them back out with the live mic level ("trækker
+  // sig ind og pulserer med mikrofonen").
+  const outerScale = state === 'speaking' ? 1 + bands.low * 0.14 : state === 'listening' ? 0.93 + level * 0.11 : 1
+  const innerScale = state === 'speaking' ? 1 + bands.mid * 0.22 : state === 'listening' ? 0.95 + level * 0.08 : 1
+  const glow = state === 'speaking' ? 22 + level * 46 : state === 'listening' ? 16 + level * 28 : state === 'thinking' ? 24 : 12
   const sparkleOpacity = state === 'speaking' ? Math.min(1, bands.high * 1.6) : 0
 
   const animClass = reducedMotion ? 'jh-core-reduced' : ''
+  const stateClass = `jh-state-${state}`
 
   return (
-    <div className={`jh-hexcore ${animClass}`} style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div className={`jh-hexcore ${animClass} ${stateClass}`} style={{ width: '100%', height: '100%', position: 'relative' }}>
       <style>{`
         .jh-hexcore svg { width: 100%; height: 100%; overflow: visible; }
         .jh-ring { transform-origin: ${CENTER}px ${CENTER}px; }
@@ -94,6 +103,17 @@ export default function HexCore({ state, level, bands, reducedMotion }: Props) {
         .jh-hexcore:not(.jh-core-reduced) .jh-ring-4 { animation: jh-spin-ccw 46s linear infinite; }
         .jh-hexcore:not(.jh-core-reduced) .jh-ring-5 { animation: jh-spin-cw 60s linear infinite; }
         .jh-hexcore:not(.jh-core-reduced) .jh-ring-6 { animation: jh-spin-ccw 80s linear infinite; }
+        .jh-hexcore:not(.jh-core-reduced) .jh-ring-7 { animation: jh-spin-cw 100s linear infinite; }
+        /* TÆNKER: every ring spins noticeably faster while Jarvis is
+           thinking, on top of the scanner sweep - a HUD-wide "working" tell
+           visible from across the room, not just the sweep itself. */
+        .jh-hexcore.jh-state-thinking:not(.jh-core-reduced) .jh-ring-1 { animation-duration: 4s; }
+        .jh-hexcore.jh-state-thinking:not(.jh-core-reduced) .jh-ring-2 { animation-duration: 6s; }
+        .jh-hexcore.jh-state-thinking:not(.jh-core-reduced) .jh-ring-3 { animation-duration: 8s; }
+        .jh-hexcore.jh-state-thinking:not(.jh-core-reduced) .jh-ring-4 { animation-duration: 12s; }
+        .jh-hexcore.jh-state-thinking:not(.jh-core-reduced) .jh-ring-5 { animation-duration: 16s; }
+        .jh-hexcore.jh-state-thinking:not(.jh-core-reduced) .jh-ring-6 { animation-duration: 20s; }
+        .jh-hexcore.jh-state-thinking:not(.jh-core-reduced) .jh-ring-7 { animation-duration: 24s; }
         @keyframes jh-spin-cw { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes jh-spin-ccw { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
         @keyframes jh-breathe { 0%, 100% { opacity: 0.75; } 50% { opacity: 1; } }
@@ -102,6 +122,14 @@ export default function HexCore({ state, level, bands, reducedMotion }: Props) {
         .jh-hexcore:not(.jh-core-reduced) .jh-scanner { animation: jh-scan 2.1s linear infinite; }
         @keyframes jh-center-pulse { 0%, 100% { r: 6; } 50% { r: 9; } }
         .jh-hexcore:not(.jh-core-reduced) .jh-center-dot { animation: jh-center-pulse 2s ease-in-out infinite; }
+        @keyframes jh-corner-glow { 0%, 100% { opacity: 0.5; r: 3; } 50% { opacity: 1; r: 5; } }
+        .jh-hexcore:not(.jh-core-reduced) .jh-corner-point { animation: jh-corner-glow 2.4s ease-in-out infinite; }
+        @keyframes jh-wave-out {
+          0% { transform: scale(1); opacity: 0.55; }
+          100% { transform: scale(1.9); opacity: 0; }
+        }
+        .jh-hexcore:not(.jh-core-reduced) .jh-speak-wave { animation: jh-wave-out 1.4s ease-out infinite; transform-origin: ${CENTER}px ${CENTER}px; }
+        .jh-hexcore:not(.jh-core-reduced) .jh-speak-wave-2 { animation-delay: 0.5s; }
       `}</style>
       <svg viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}>
         <defs>
@@ -112,9 +140,32 @@ export default function HexCore({ state, level, bands, reducedMotion }: Props) {
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
+          <radialGradient id="jh-hex-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor={color} stopOpacity={state === 'speaking' ? 0.28 : 0.16} />
+            <stop offset="100%" stopColor={color} stopOpacity={0} />
+          </radialGradient>
         </defs>
 
+        {/* Faint radial glow sitting behind the whole hexagon assembly */}
+        <circle cx={CENTER} cy={CENTER} r={175} fill="url(#jh-hex-glow)" />
+
+        {/* Speaking-only: waves rippling outward from the hexagon */}
+        {state === 'speaking' && (
+          <>
+            <circle className="jh-speak-wave" cx={CENTER} cy={CENTER} r={150} fill="none" stroke={color} strokeWidth={1.5} />
+            <circle className="jh-speak-wave jh-speak-wave-2" cx={CENTER} cy={CENTER} r={150} fill="none" stroke={color} strokeWidth={1.5} />
+          </>
+        )}
+
         <g style={{ filter: 'url(#jh-glow)' }}>
+          {/* Ring 7: outer segmented ring, the outermost layer, own dedicated
+              band clear of the tick/code rings below */}
+          <g className="jh-ring jh-ring-7">
+            {arcs7.map((d, i) => (
+              <path key={i} d={d} fill="none" stroke={color} strokeWidth={2.5} opacity={0.45} />
+            ))}
+          </g>
+
           {/* Ring 6: sparse outer segmented arcs */}
           <g className="jh-ring jh-ring-6">
             {arcs6.map((d, i) => (
@@ -164,6 +215,13 @@ export default function HexCore({ state, level, bands, reducedMotion }: Props) {
           <g style={{ transform: `scale(${outerScale})`, transformOrigin: `${CENTER}px ${CENTER}px`, transition: 'transform 0.08s linear' }}>
             <polygon points={hexPoints(150)} fill="none" stroke={color} strokeWidth={2} className="jh-breathe" />
             <polygon points={hexPoints(150)} fill={color} opacity={0.03} />
+          </g>
+
+          {/* Glowing corner points on the outer hexagon */}
+          <g style={{ transform: `scale(${outerScale})`, transformOrigin: `${CENTER}px ${CENTER}px`, transition: 'transform 0.08s linear' }}>
+            {HEX_VERTICES.map((v, i) => (
+              <circle key={i} className="jh-corner-point" cx={v.x} cy={v.y} r={3} fill={color} />
+            ))}
           </g>
 
           {/* Inner hexagon + spokes to outer vertices */}

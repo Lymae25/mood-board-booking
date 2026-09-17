@@ -48,9 +48,16 @@ export default function GoldHologram({ open, reducedMotion }: Props) {
     const outer = new THREE.LineSegments(outerGeo, outerMat)
     group.add(outer)
 
-    // Glowing core.
-    const coreGeo = new THREE.SphereGeometry(0.22, 16, 16)
-    const coreMat = new THREE.MeshBasicMaterial({ color: 0xfff3d6 })
+    // Glowing core - dimmed to a warm gold rather than a blinding white
+    // point: a smaller, less saturated inner sphere plus a larger,
+    // low-opacity halo behind it for the "glow" instead of raw brightness.
+    const coreHaloGeo = new THREE.SphereGeometry(0.42, 16, 16)
+    const coreHaloMat = new THREE.MeshBasicMaterial({ color: 0xffb300, transparent: true, opacity: 0.18 })
+    const coreHalo = new THREE.Mesh(coreHaloGeo, coreHaloMat)
+    group.add(coreHalo)
+
+    const coreGeo = new THREE.SphereGeometry(0.2, 16, 16)
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffc94d, transparent: true, opacity: 0.85 })
     const core = new THREE.Mesh(coreGeo, coreMat)
     group.add(core)
 
@@ -111,11 +118,14 @@ export default function GoldHologram({ open, reducedMotion }: Props) {
       wireMat.opacity = 0.55 * materialize
       outerMat.opacity = 0.22 * materialize
       particleMat.opacity = 0.85 * materialize
+      coreMat.opacity = 0.85 * materialize
+      coreHaloMat.opacity = 0.18 * materialize
 
       if (!reducedMotion) {
         particles.rotation.y -= 0.0009
         const t = Date.now() * 0.001
         core.scale.setScalar(1 + Math.sin(t * 2) * 0.08)
+        coreHalo.scale.setScalar(1 + Math.sin(t * 2) * 0.12)
       }
 
       renderer.render(scene, camera)
@@ -146,6 +156,8 @@ export default function GoldHologram({ open, reducedMotion }: Props) {
       outerMat.dispose()
       coreGeo.dispose()
       coreMat.dispose()
+      coreHaloGeo.dispose()
+      coreHaloMat.dispose()
       particleGeo.dispose()
       particleMat.dispose()
       renderer.dispose()

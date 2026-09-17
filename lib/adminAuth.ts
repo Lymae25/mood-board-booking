@@ -232,5 +232,10 @@ export function getSessionTokenFromRequest(request: Request): string | undefined
 // 401 immediately when it's false - see the routes retrofitted for this.
 export async function requireAdminSession(request: Request): Promise<boolean> {
   const token = getSessionTokenFromRequest(request)
-  return verifySession(token)
+  const valid = await verifySession(token)
+  if (valid) {
+    const { recordAdminRequest } = await import('./requestMetrics')
+    recordAdminRequest()
+  }
+  return valid
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { initDB, createMoodBoardDraft, getMoodBoardDrafts, logJarvisAction } from '@/lib/db-postgres'
+import { initDB, createMoodBoardDraft, getMoodBoardDrafts, getCustomerById, logJarvisAction } from '@/lib/db-postgres'
 import { requireAdminSession } from '@/lib/adminAuth'
 
 // Drafts are never customer-visible (see lib/db-postgres.ts's comment on
@@ -24,7 +24,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'customerId, projectId and title required' }, { status: 400 })
     }
     const draft = await createMoodBoardDraft(data)
-    await logJarvisAction('save_trend_to_customer', `customerId=${data.customerId} projectId=${data.projectId} title=${data.title}`)
+    // Plain-Danish activity log (Del A, punkt 6): store the customer's name,
+    // not their id, so the admin log view can render "Trend gemt til
+    // <kundenavn>" directly with no further lookup.
+    const customer = await getCustomerById(data.customerId)
+    await logJarvisAction('save_trend_to_customer', customer?.name || data.customerId)
     return NextResponse.json(draft, { status: 201 })
   } catch (error) {
     console.error('POST /api/mood-board-drafts error:', error)

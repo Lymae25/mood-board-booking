@@ -21,11 +21,23 @@ export const FONT_STACK = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo
 
 export type HudState = 'idle' | 'listening' | 'thinking' | 'speaking'
 
+// Listening gets its own green-cyan tone (not plain CYAN.bright) so it
+// reads as a distinct state at a glance, per the HUD brief - "grøn-cyan
+// farve" for LYTTER, separate from the ordinary idle/thinking/speaking cyan.
+export const LISTEN_GREEN = '#12ffb0'
+
 export const STATE_COLOR: Record<HudState, string> = {
   idle: CYAN.mid,
-  listening: CYAN.bright,
+  listening: LISTEN_GREEN,
   thinking: CYAN.deep,
   speaking: CYAN.bright
+}
+
+export const STATE_LABEL_DA: Record<HudState, string> = {
+  idle: 'HVILER',
+  listening: 'LYTTER',
+  thinking: 'TÆNKER',
+  speaking: 'TALER'
 }
 
 // Small helper for the "cut corner" panel look used throughout - a CSS
