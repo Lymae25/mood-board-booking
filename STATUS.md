@@ -79,11 +79,74 @@ messages, and reset their PIN outright (full account takeover).
   Being fixed on branch `security-upload` (off `main`) - will require an
   admin or the owning customer's session, and restrict file type
   (images + PDF) and size.
-- **`GET /api/typing`** (chat "is typing" indicator) is not session-gated.
-  Low severity - reveals only a boolean presence blip, no message content -
-  left open for now.
+- ~~**`GET`/`POST /api/typing`** (chat "is typing" indicator) is not
+  session-gated.~~ **Fixed on branch `security-typing` (off `main`, not
+  merged)** - both routes now require the owning customer's session (or
+  admin) via `requireOwnerOrAdmin()`/`requireAdminSession()`, the same
+  pattern as `/api/messages`. Was low severity even before the fix (reveals
+  only a boolean presence blip, no message content), but the same
+  customerId-with-no-proof pattern this file exists to rule out everywhere
+  else.
 - No admin UI yet for TOTP setup (API-only: `POST`/`PUT`/`DELETE
-  /api/admin/totp`) or for browsing login/PIN rate-limit history.
+  /api/admin/totp`) or for browsing login/PIN rate-limit history. (An admin
+  UI for this now exists on branch `jarvis-control-v2`, built on top of
+  Del C there - see that branch's own `STATUS.md` entries for "Del B". Not
+  merged to `main`.)
+
+---
+
+# 2026-09-17: security-typing - secure /api/typing
+
+New branch off `main` (not `jarvis-control-v2`), per this task's own
+instructions - keeps this fix mergeable independently of the HUD work.
+Same session/environment as the work above: no Docker/OrbStack running, so
+`npm test`'s new DB-backed tests were not actually run this session (they
+skip cleanly with no `DATABASE_URL` - confirmed - but that's not the same
+as passing against a real database).
+
+## What's done
+
+- `app/api/typing/route.ts`: both `GET` (read typing state) and `POST`
+  (announce typing) now require a session - an admin session when the
+  caller claims to be `sender: 'admin'`, otherwise the owning customer's
+  own session (or an admin acting on their behalf), via the existing
+  `requireOwnerOrAdmin()`/`requireAdminSession()` from `lib/adminAuth.ts`/
+  `lib/customerAuth.ts` - the exact same pattern `/api/messages` already
+  uses. No client-side changes needed: `AdminPanel.tsx` and `ChatWidget.tsx`
+  already call this same-origin, so their existing httpOnly session cookies
+  are sent automatically.
+- New tests in `tests/accessControl.test.ts` (same file/pattern as the
+  rest of this branch's own access-control coverage): both routes reject
+  requests with no session; customer A cannot read or write customer B's
+  typing state; a customer session cannot post as `sender: 'admin'`; a
+  customer can read/write their own state; an admin session can read/write
+  any customer's state.
+
+## Test, build, lint
+
+- `npx tsc --noEmit`: clean (after clearing a stale `.next/` cache left
+  over from checking out `jarvis-control-v2` earlier in this session, which
+  otherwise reports phantom errors for that branch's Jarvis-only routes -
+  not a real issue, just a stale generated-types file).
+- `npm run build`: succeeds, `/api/typing` listed in the route manifest.
+- `npm run lint`: diffed against `main`'s own baseline (152 problems: 92
+  errors, 60 warnings, re-verified by stashing this branch's changes and
+  running lint again) - **identical, zero new errors or warnings.**
+- `npm test`: **the new DB-backed tests were not run against a real
+  database this session** (no Docker/OrbStack - see the top of this file).
+  Confirmed they at least skip cleanly rather than erroring with no
+  `DATABASE_URL` set (`tests/accessControl.test.ts`: 19 tests, all
+  skipped; the DB-independent `tests/adminAuth.test.ts`: 9/9 passing).
+  **You need to**: run `npm test` for real once the DB is up, before
+  treating this as verified.
+
+## What you need to decide/do
+
+- This branch is pushed but **not merged** to `main`, per instructions.
+  When you're ready, it can merge independently of any of the
+  `jarvis-control-v2` work above - it doesn't touch anything that branch
+  also touches.
+- Run the real test suite once Docker/OrbStack is available.
 
 ## How to test locally
 

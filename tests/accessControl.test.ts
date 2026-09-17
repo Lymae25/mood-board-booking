@@ -11,6 +11,7 @@ import * as ideasRoute from '@/app/api/ideas/route'
 import * as timelineRoute from '@/app/api/timeline/route'
 import * as messagesRoute from '@/app/api/messages/route'
 import * as calendarFeedRoute from '@/app/api/calendar/feed.ics/route'
+import * as typingRoute from '@/app/api/typing/route'
 import { NextRequest } from 'next/server'
 
 // These call the actual Next.js Route Handler functions directly (no
@@ -204,5 +205,87 @@ d('customers cannot see or change another customer\'s data', () => {
       { params: Promise.resolve({ id: projectAId }) }
     )
     expect(res.status).toBe(401)
+  })
+})
+
+// Del C (security-typing branch): /api/typing (the chat "is typing"
+// indicator) used to accept any customerId with no session check at all -
+// low severity on its own (it only reveals a boolean presence blip, no
+// message content), but it's the same customerId-as-proof pattern the rest
+// of this file exists to rule out everywhere else, so it gets the same
+// treatment: an owning-customer-or-admin session, checked the same way as
+// /api/messages.
+d('/api/typing requires a session, and customers cannot read or write each other\'s typing state', () => {
+  let customerAId = ''
+  let customerBId = ''
+  let sessionA = ''
+  let adminToken = ''
+
+  beforeAll(async () => {
+    await initDB()
+    const a = await createCustomer({ name: 'Typing Access Customer A', pin: '5551' })
+    const b = await createCustomer({ name: 'Typing Access Customer B', pin: '5552' })
+    customerAId = a.id
+    customerBId = b.id
+    sessionA = await createCustomerSession(customerAId)
+    adminToken = await createSession()
+  })
+
+  afterAll(async () => {
+    await deleteCustomer(customerAId)
+    await deleteCustomer(customerBId)
+  })
+
+  it('GET /api/typing requires a session', async () => {
+    const res = await typingRoute.GET(req(`http://localhost/api/typing?customerId=${customerAId}`))
+    expect(res.status).toBe(401)
+  })
+
+  it('POST /api/typing requires a session', async () => {
+    const res = await typingRoute.POST(req('http://localhost/api/typing', {
+      method: 'POST', body: JSON.stringify({ customerId: customerAId, sender: 'customer' })
+    }))
+    expect(res.status).toBe(401)
+  })
+
+  it('customer A cannot read or write customer B\'s typing state', async () => {
+    const getOther = await typingRoute.GET(req(`http://localhost/api/typing?customerId=${customerBId}`, { cookie: `${CUSTOMER_SESSION_COOKIE}=${sessionA}` }))
+    expect(getOther.status).toBe(401)
+
+    const postOther = await typingRoute.POST(req('http://localhost/api/typing', {
+      method: 'POST', cookie: `${CUSTOMER_SESSION_COOKIE}=${sessionA}`, body: JSON.stringify({ customerId: customerBId, sender: 'customer' })
+    }))
+    expect(postOther.status).toBe(401)
+  })
+
+  it('customer A can read and write their own typing state', async () => {
+    const post = await typingRoute.POST(req('http://localhost/api/typing', {
+      method: 'POST', cookie: `${CUSTOMER_SESSION_COOKIE}=${sessionA}`, body: JSON.stringify({ customerId: customerAId, sender: 'customer' })
+    }))
+    expect(post.status).toBe(200)
+
+    const get = await typingRoute.GET(req(`http://localhost/api/typing?customerId=${customerAId}`, { cookie: `${CUSTOMER_SESSION_COOKIE}=${sessionA}` }))
+    expect(get.status).toBe(200)
+    const data = await get.json()
+    expect(data.customerTyping).toBe(true)
+  })
+
+  it('a customer session cannot post as sender "admin" - that still requires a real admin session', async () => {
+    const res = await typingRoute.POST(req('http://localhost/api/typing', {
+      method: 'POST', cookie: `${CUSTOMER_SESSION_COOKIE}=${sessionA}`, body: JSON.stringify({ customerId: customerAId, sender: 'admin' })
+    }))
+    expect(res.status).toBe(401)
+  })
+
+  it('an admin session can read and write any customer\'s typing state', async () => {
+    const post = await typingRoute.POST(req('http://localhost/api/typing', {
+      method: 'POST', cookie: `${ADMIN_SESSION_COOKIE}=${adminToken}`, body: JSON.stringify({ customerId: customerBId, sender: 'admin' })
+    }))
+    expect(post.status).toBe(200)
+
+    const get = await typingRoute.GET(req(`http://localhost/api/typing?customerId=${customerBId}`, { cookie: `${ADMIN_SESSION_COOKIE}=${adminToken}` }))
+    expect(get.status).toBe(200)
+    const data = await get.json()
+    expect(data.adminTyping).toBe(true)
   })
 })

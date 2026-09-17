@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminSession } from '@/lib/adminAuth'
+import { requireOwnerOrAdmin } from '@/lib/customerAuth'
 
 const TYPING_WINDOW_MS = 3000
 const STALE_ENTRY_MS = 60000
@@ -29,6 +31,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'customerId and sender ("customer" or "admin") required' }, { status: 400 })
     }
 
+    // Same pattern as the other customer-scoped routes (/api/messages,
+    // /api/projects, ...): a message tagged as the admin typing requires a
+    // real admin session, anything else requires that customer's own
+    // session (or an admin acting on their behalf) - never just whatever
+    // customerId the client happens to send.
+    const isAdminSender = sender === 'admin'
+    const authorized = isAdminSender
+      ? await requireAdminSession(request)
+      : await requireOwnerOrAdmin(request, customerId)
+    if (!authorized) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
     const now = Date.now()
     const entry = typingState.get(customerId) || { customerTypingAt: 0, adminTypingAt: 0 }
     if (sender === 'customer') entry.customerTypingAt = now
@@ -47,6 +60,7 @@ export async function GET(request: NextRequest) {
   try {
     const customerId = request.nextUrl.searchParams.get('customerId')
     if (!customerId) return NextResponse.json({ error: 'customerId required' }, { status: 400 })
+    if (!(await requireOwnerOrAdmin(request, customerId))) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
     const entry = typingState.get(customerId)
     const now = Date.now()
