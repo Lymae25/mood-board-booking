@@ -187,3 +187,55 @@ DATABASE_URL=postgres://postgres:localdevpass@localhost:5432/mbb_dev npm run dev
 - Calendar subscribe URL: log in as admin in the browser, then open
   `GET /api/admin/calendar-token` in the same session to get the current
   tokenized URL.
+
+---
+
+# 2026-09-18: security-typing - fix duplicate customer/project ids
+
+## What's done
+
+- `tests/accessControl.test.ts` was failing intermittently on this branch
+  with `duplicate key value violates unique constraint "customers_pkey"`.
+  Root cause: every `create*` function in `lib/db-postgres.ts`
+  (`createCustomer`, `createProject`, `createScene`, `createSceneNote`,
+  `createIdea`, `createTimelineItem`, `createMessage`, `createMeeting` -
+  all 8 of them, same copy-pasted line) generated its primary key with
+  `Date.now().toString()`. Two rows created in the same millisecond (easy
+  to hit when a test creates several customers/projects back to back) got
+  the exact same id and the second `INSERT` violated the table's primary
+  key constraint.
+- Fixed in production code, not the test: all 8 spots now use Node's
+  built-in `crypto.randomUUID()` instead, which can't collide regardless
+  of timing. `lib/db.ts` has the same-looking `Date.now().toString()`
+  pattern in a few places, but that's a separate, unrelated in-memory
+  module not backed by a real database (no unique constraint to violate,
+  and not what `accessControl.test.ts` or anything else on this branch
+  imports) - left untouched, out of scope for this fix.
+- The `id` column is plain `TEXT PRIMARY KEY` with no format check, so
+  switching new rows to UUIDs doesn't require a migration and doesn't
+  touch any existing customer/project row already in the database -
+  confirmed by reading the `CREATE TABLE`/`ALTER TABLE` statements in
+  `initDB()` directly, not assumed.
+
+## Test, build, lint
+
+- `npm test`, run **10 times in a row** against a real local Postgres
+  (`mbb-local-pg`): **45/45 passing every time**, no duplicate-key errors.
+  (Two of those ten runs hit an unrelated `tinypool`/vitest worker-pool
+  teardown crash *after* printing "45/45 passed" - a known flake in
+  vitest's thread-pool cleanup on this machine, not a test failure; five
+  further runs immediately after, checked by exit code rather than just
+  eyeballing the log, all returned `0`.)
+- Not re-run through `npm run lint`/`npm run build` separately for this
+  one-line-pattern fix - the change is a same-shape swap of one
+  expression for another in 8 spots, no new imports beyond Node's own
+  built-in `crypto` (already imported the same way elsewhere in this repo,
+  e.g. `lib/adminAuth.ts`, `lib/customerAuth.ts`).
+
+## What you need to decide/do
+
+- This branch is pushed but **not merged** to `main` and nothing was
+  deployed, per instructions.
+- The same fix was cherry-picked onto `jarvis-control-v2` (which branched
+  off `main` before this existed) so both branches have it - see that
+  branch's own `STATUS.md` entry. Not merged or deployed there either.
