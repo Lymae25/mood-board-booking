@@ -1,4 +1,5 @@
 import postgres from 'postgres'
+import { randomUUID } from 'crypto'
 
 let sql: any = null
 
@@ -48,7 +49,7 @@ export async function getCustomerById(id: string) {
 
 export async function createCustomer(data: any) {
   const sql = getDb()
-  const id = Date.now().toString()
+  const id = randomUUID()
   await sql`INSERT INTO customers ("id", "name", "logoUrl", "pin", "createdAt") VALUES (${id}, ${data.name}, ${data.logoUrl || ''}, ${data.pin}, ${new Date().toISOString()})`
   return { id, ...data, createdAt: new Date().toISOString() }
 }
@@ -99,7 +100,7 @@ export async function getProjectById(id: string) {
 
 export async function createProject(data: any) {
   const sql = getDb()
-  const id = Date.now().toString()
+  const id = randomUUID()
   await sql`INSERT INTO projects ("id", "customerId", "name", "description", "clientName", "logoUrl", "status", "startDate", "endDate", "createdAt") VALUES (${id}, ${data.customerId || ''}, ${data.name}, ${data.description || ''}, ${data.clientName || ''}, ${data.logoUrl || ''}, ${data.status}, ${data.startDate || ''}, ${data.endDate || ''}, ${new Date().toISOString()})`
   return { id, ...data, createdAt: new Date().toISOString() }
 }
@@ -122,7 +123,7 @@ export async function getScenes(projectId: string) {
 
 export async function createScene(projectId: string, scene: any) {
   const sql = getDb()
-  const id = Date.now().toString()
+  const id = randomUUID()
   await sql`INSERT INTO scenes ("id", "projectId", "sceneNumber", "title", "description", "imageUrl", "createdAt") VALUES (${id}, ${projectId}, ${scene.sceneNumber}, ${scene.title}, ${scene.description}, ${scene.imageUrl || ''}, ${new Date().toISOString()})`
   return { id, projectId, ...scene, createdAt: new Date().toISOString() }
 }
@@ -137,7 +138,7 @@ export async function getSceneNotes(sceneId: string) {
 
 export async function createSceneNote(sceneId: string, projectId: string, content: string) {
   const sql = getDb()
-  const id = Date.now().toString()
+  const id = randomUUID()
   await sql`INSERT INTO sceneNotes ("id", "sceneId", "projectId", "content", "createdAt") VALUES (${id}, ${sceneId}, ${projectId}, ${content}, ${new Date().toISOString()})`
   return { id, sceneId, projectId, content, createdAt: new Date().toISOString() }
 }
@@ -148,7 +149,7 @@ export async function getIdeas(projectId: string) {
 
 export async function createIdea(projectId: string, idea: any) {
   const sql = getDb()
-  const id = Date.now().toString()
+  const id = randomUUID()
   await sql`INSERT INTO ideas ("id", "projectId", "title", "description", "imageUrl", "category", "createdAt") VALUES (${id}, ${projectId}, ${idea.title}, ${idea.description}, ${idea.imageUrl || ''}, ${idea.category}, ${new Date().toISOString()})`
   return { id, projectId, ...idea, createdAt: new Date().toISOString() }
 }
@@ -163,7 +164,7 @@ export async function getAllTimelineItems() {
 
 export async function createTimelineItem(projectId: string, item: any) {
   const sql = getDb()
-  const id = Date.now().toString()
+  const id = randomUUID()
   await sql`INSERT INTO timeline ("id", "projectId", "title", "description", "dueDate", "status", "imageUrl", "createdAt") VALUES (${id}, ${projectId}, ${item.title}, ${item.description}, ${item.dueDate}, ${item.status}, ${item.imageUrl || ''}, ${new Date().toISOString()})`
   return { id, projectId, ...item, createdAt: new Date().toISOString() }
 }
@@ -178,7 +179,7 @@ export async function getAllMessages() {
 
 export async function createMessage(data: any) {
   const sql = getDb()
-  const id = Date.now().toString()
+  const id = randomUUID()
   const sender = data.sender === 'admin' ? 'admin' : 'customer'
   const readByAdmin = sender === 'admin'
   const readByCustomer = sender === 'customer'
@@ -205,7 +206,7 @@ export async function getMeetings() {
 
 export async function createMeeting(data: any) {
   const sql = getDb()
-  const id = Date.now().toString()
+  const id = randomUUID()
   const duration = parseInt(data.duration, 10) || 60
   const createdAt = new Date().toISOString()
   await sql`INSERT INTO meetings ("id", "customerId", "title", "description", "meetingDate", "meetingTime", "duration", "meetingType", "location", "createdAt") VALUES (${id}, ${data.customerId}, ${data.title}, ${data.description || ''}, ${data.meetingDate}, ${data.meetingTime}, ${duration}, ${data.meetingType || 'other'}, ${data.location || ''}, ${createdAt})`
