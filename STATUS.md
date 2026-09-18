@@ -839,3 +839,53 @@ built entirely from reading `~/jarvis/MIGRATION-PLAN.md`,
 directly off the `trends-endpoint` branch, since that section doesn't
 exist on `~/jarvis`'s `main`), and this branch's own `STATUS.md` entries
 above - not by actually running any of the Railway steps.
+
+---
+
+# 2026-09-18: fix duplicate customer/project ids (cherry-picked from security-typing)
+
+`tests/accessControl.test.ts` on `security-typing` was failing
+intermittently with `duplicate key value violates unique constraint
+"customers_pkey"`. Root cause: every `create*` function in
+`lib/db-postgres.ts` (`createCustomer`, `createProject`, `createScene`,
+`createSceneNote`, `createIdea`, `createTimelineItem`, `createMessage`,
+`createMeeting` - all 8, same copy-pasted line) generated its primary key
+with `Date.now().toString()`, so two rows created in the same millisecond
+got the same id and the second `INSERT` violated the primary key.
+
+## What's done
+
+- Fixed on `security-typing` first (full detail and 10x-in-a-row test
+  verification in that branch's own `STATUS.md`), then cherry-picked onto
+  this branch (commit originally `c6f8045`, here `35a82d1`) so both
+  branches have the fix - a clean cherry-pick, no conflicts, since neither
+  branch had touched these particular lines otherwise.
+- All 8 spots now use `crypto.randomUUID()` instead of
+  `Date.now().toString()`. This branch's own two `lib/db-postgres.ts`
+  additions from Del C (`createMoodBoardDraft`, and `jarvisActionLog`'s
+  insert inside `logJarvisAction`) already used `randomUUID()` from the
+  start (checked directly - they weren't part of the original bug), so
+  this fix only touches the 8 pre-existing functions and doesn't change
+  anything Jarvis-specific.
+- `lib/db.ts` has the same-looking pattern but is a separate, unrelated
+  in-memory module with no real database and no unique constraint to
+  violate - left untouched, out of scope here too.
+
+## Test, build, lint
+
+- `npm test` against the same real local Postgres (`mbb-local-pg`), run 3
+  times in a row: **65/65 passing every time** (60 from before this fix
+  plus this branch's existing full count - no new tests added, this is a
+  pure bugfix), no duplicate-key errors, exit code `0` every run.
+- Not re-run through `npm run build`/`npm run lint` separately - same
+  reasoning as on `security-typing`: an 8-spot same-shape expression swap,
+  no new imports beyond Node's own built-in `crypto` (already used the
+  same way elsewhere in this file and in `lib/adminAuth.ts`/
+  `lib/customerAuth.ts`).
+
+## What you need to decide/do
+
+- Nothing merges or deploys on its own, same as everything else on this
+  branch. Both `security-typing` and `jarvis-control-v2` now have this fix
+  independently - merging either one to `main` first doesn't block the
+  other.
